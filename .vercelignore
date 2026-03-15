@@ -1,0 +1,14 @@
+# Large files to ignore
+*.exe
+*.dmg
+*.zip
+*.7z
+*.tar.gz
+node_modules/
+dist/
+build/
+.venv/
+__pycache__/
+*.pyc
+*.db
+*.log
