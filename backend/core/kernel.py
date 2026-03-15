@@ -20,8 +20,8 @@ from core.users import users
 from core.auth import auth
 from plugins.filesystem import filesystem
 from plugins.voice import voice
-from plugins.vision import vision
-from plugins.live_stream import live_stream
+#from plugins.vision import vision
+#from plugins.live_stream import live_stream
 from plugins.web import web
 from core.code_executor import code_executor
 from plugins.cyber_security import cyber_security
