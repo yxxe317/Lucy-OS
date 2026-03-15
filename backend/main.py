@@ -1,7 +1,8 @@
 import uvicorn
+import os
 from core.kernel import app
 
 if __name__ == "__main__":
-    print("🚀 Starting Lucy OS v5.0 Kernel...")
-    print("🌐 Access Dashboard at: http://127.0.0.1:8000/docs")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    print(f"🚀 Starting Lucy OS on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)
