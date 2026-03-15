@@ -21,7 +21,6 @@ from core.auth import auth
 from plugins.filesystem import filesystem
 from plugins.voice import voice
 from plugins.vision import vision
-from plugins.screen import screen
 from plugins.live_stream import live_stream
 from plugins.web import web
 from core.code_executor import code_executor
