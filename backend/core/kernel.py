@@ -75,6 +75,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "https://lucy-os.vercel.app"
+        "https://lucy-os-two.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
