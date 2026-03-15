@@ -809,19 +809,11 @@ ${text}
           console.log("📝 Enhanced context sent to LLM");
         }
 
-        const response = await fetch(`${API_URL}/query/stream`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...headers
-          },
-          body: JSON.stringify({
-            query: contextPrompt,
-            research_mode: false,
-            deep_research: false
-          })
-        });
-
+        const response = await fetch(`${API_URL}/auth/login`, {
+         method: 'POST',  // ← MAKE SURE THIS IS 'POST'
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ username, password })
+        })
         if (!response.body) throw new Error("No response body");
 
         const reader = response.body.getReader();
@@ -1284,5 +1276,3 @@ ${text}
 }
 
 export default App;  
- 
- 
