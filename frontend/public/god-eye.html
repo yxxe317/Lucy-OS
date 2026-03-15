@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOD'S EYE · 4D INTELLIGENCE v4.1</title>
+
+<!-- CesiumJS -->
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.111/Build/Cesium/Cesium.js"></script>
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.111/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+<!-- satellite.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/satellite.js/4.1.3/satellite.min.js"></script>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --c:#00ffff;--g:#00ff88;--r:#ff3300;--m:#ff00ff;
+  --y:#ffee00;--a:#ffaa00;--o:#ff6600;--p:#8844ff;
+  --bg:rgba(0,5,16,0.93);--bd:rgba(0,255,255,0.25);
+  --fn:'Share Tech Mono','Courier New',monospace;
+}
+/* Force full viewport even in iframe */
+html{width:100%;height:100%;overflow:hidden}
+body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var(--fn);position:relative}
+
+/* Globe must fill everything */
+#cesiumContainer{
+  position:fixed !important;
+  top:0!important;left:0!important;right:0!important;bottom:0!important;
+  width:100%!important;height:100%!important;
+  z-index:0;
+}
+
+/* Hide Cesium credits */
+.cesium-widget-credits,.cesium-credit-logoContainer,
+.cesium-credit-expand-link,.cesium-credit-textContainer{display:none!important}
+.cesium-infoBox{background:rgba(0,0,0,0.97)!important;border:1px solid var(--c)!important}
+.cesium-infoBox-title{background:rgba(0,15,25,1)!important;color:var(--c)!important;font-family:var(--fn)!important}
+
+/* ── LOADING ────────────────────── */
+#LS{
+  position:fixed;inset:0;z-index:9999;
+  background:#000015;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  transition:opacity 0.8s ease;
+}
+#LT{font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;letter-spacing:8px;color:var(--c);text-shadow:0 0 30px var(--c),0 0 60px rgba(0,255,255,0.2)}
+#LS2{font-size:10px;letter-spacing:5px;color:rgba(0,255,255,0.4)}
+#LBarOuter{width:320px;height:3px;background:rgba(0,255,255,0.08);border:1px solid rgba(0,255,255,0.12)}
+#LF{height:100%;width:0%;background:var(--c);box-shadow:0 0 12px var(--c);transition:width 0.5s ease}
+#LST{font-size:10px;letter-spacing:2px;color:rgba(0,255,255,0.35);min-height:16px;text-align:center}
+#LErr{font-size:10px;color:#ff3300;letter-spacing:1px;min-height:16px;max-width:400px;text-align:center;display:none}
+
+/* ── SCANLINES ──────────────────── */
+#scanlines{position:fixed;inset:0;pointer-events:none;z-index:8;opacity:0;transition:opacity 0.4s;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.12) 2px,rgba(0,0,0,0.12) 3px)}
+
+/* ── TOP BAR ────────────────────── */
+#topBar{
+  position:fixed;top:0;left:0;right:0;height:50px;z-index:500;
+  display:flex;align-items:center;gap:10px;padding:0 14px;
+  background:rgba(0,2,10,0.98);border-bottom:1px solid var(--bd);
+}
+#logo{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:900;letter-spacing:4px;color:var(--c);text-shadow:0 0 18px var(--c);white-space:nowrap;flex-shrink:0}
+.sep{width:1px;height:28px;background:var(--bd);flex-shrink:0}
+.vmg{display:flex;gap:3px}
+.vm{border:1px solid rgba(0,255,255,0.2);background:transparent;color:rgba(0,255,255,0.38);font-family:var(--fn);font-size:9px;letter-spacing:2px;padding:4px 9px;cursor:pointer;transition:all 0.15s}
+.vm:hover{border-color:var(--c);color:var(--c);background:rgba(0,255,255,0.07)}
+.vm.on{border-color:var(--c);color:var(--c);background:rgba(0,255,255,0.12);box-shadow:0 0 10px rgba(0,255,255,0.25)}
+.vm.on.nvg{border-color:#00ff55;color:#00ff55;background:rgba(0,255,70,0.11)}
+.vm.on.flir{border-color:#ff7700;color:#ff7700;background:rgba(255,119,0,0.11)}
+.vm.on.crt{border-color:#aaf040;color:#aaf040;background:rgba(170,240,60,0.09)}
+.topbtn{background:transparent;border:1px solid rgba(0,255,255,0.22);color:rgba(0,255,255,0.48);font-family:var(--fn);font-size:9px;padding:4px 9px;cursor:pointer;letter-spacing:1px;transition:all 0.13s}
+.topbtn:hover{border-color:var(--c);color:var(--c);background:rgba(0,255,255,0.07)}
+#topRight{margin-left:auto;text-align:right;line-height:1.7;flex-shrink:0}
+#utcClock{font-size:12px;letter-spacing:2px;color:var(--a)}
+#coordLine{font-size:10px;color:rgba(0,255,255,0.4)}
+#coordLine span{color:var(--c)}
+
+/* ── SEARCH ────────────────────── */
+#srchWrap{
+  position:fixed;top:58px;left:242px;z-index:500;
+  background:var(--bg);border:1px solid var(--bd);
+  width:280px;pointer-events:all;
+}
+#srchForm{display:flex;align-items:center;padding:0 10px;height:36px;gap:6px}
+#srchForm span{color:var(--c);opacity:0.55;font-size:11px;flex-shrink:0}
+#si{flex:1;background:transparent;border:none;outline:none;color:var(--g);font-family:var(--fn);font-size:12px}
+#si::placeholder{color:#333}
+#srchRes{display:none;position:absolute;top:100%;left:0;right:0;background:rgba(0,3,12,0.99);border:1px solid var(--bd);border-top:none;max-height:200px;overflow-y:auto;z-index:501}
+.sr{padding:7px 11px;font-size:10px;color:rgba(0,255,255,0.7);cursor:pointer;border-bottom:1px solid rgba(0,255,255,0.05);letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr:hover{background:rgba(0,255,255,0.08);color:var(--c)}
+
+/* ── LEFT HUD ────────────────────── */
+#hud{
+  position:fixed;top:58px;left:12px;z-index:400;
+  background:var(--bg);border:1px solid var(--bd);
+  backdrop-filter:blur(12px);width:220px;pointer-events:none;
+}
+.ph{display:flex;align-items:center;gap:7px;padding:7px 11px;border-bottom:1px solid var(--bd);font-size:9px;letter-spacing:3px;color:rgba(0,255,255,0.48)}
+.ph::before{content:'';width:5px;height:5px;background:var(--c);box-shadow:0 0 5px var(--c);flex-shrink:0}
+.ht{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;padding:8px 11px 5px;color:var(--c);letter-spacing:2px;border-bottom:1px solid var(--bd)}
+.lr{display:flex;align-items:center;padding:5px 11px;border-bottom:1px solid rgba(0,255,255,0.06)}
+.led{width:7px;height:7px;border-radius:50%;animation:pulse 2s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.4)}}
+.sg{display:grid;grid-template-columns:1fr 1fr}
+.st{padding:8px 11px;border-bottom:1px solid rgba(0,255,255,0.07);border-right:1px solid rgba(0,255,255,0.07)}
+.st:nth-child(even){border-right:none}
+.sl{font-size:9px;color:#555;letter-spacing:1px}
+.sv{font-size:18px;font-weight:bold;color:#fff;margin-top:1px}
+.cy{color:var(--c)} .gn{color:var(--g)} .rd{color:var(--r)} .am{color:var(--a)} .mg{color:var(--m)} .or{color:var(--o)} .pu{color:var(--p)}
+
+/* ── RIGHT PANEL ────────────────── */
+#rp{
+  position:fixed;top:58px;right:12px;z-index:400;
+  background:var(--bg);border:1px solid var(--bd);
+  backdrop-filter:blur(12px);width:222px;
+  max-height:calc(100vh - 105px);overflow-y:auto;
+  pointer-events:all;
+}
+#rp::-webkit-scrollbar{width:3px}
+#rp::-webkit-scrollbar-thumb{background:rgba(0,255,255,0.2)}
+.sh{display:flex;align-items:center;justify-content:space-between;padding:7px 11px;background:rgba(0,255,255,0.03);border-bottom:1px solid rgba(0,255,255,0.1);cursor:pointer;user-select:none}
+.sh:hover{background:rgba(0,255,255,0.06)}
+.sh-t{font-size:9px;letter-spacing:2px;color:rgba(0,255,255,0.55)}
+.sh-a{font-size:9px;color:rgba(0,255,255,0.35);transition:transform 0.2s}
+.sh-a.open{transform:rotate(90deg)}
+.sb2{overflow:hidden;transition:max-height 0.3s ease;max-height:0}
+.sb2.open{max-height:1200px}
+.lr2{display:flex;align-items:center;gap:7px;padding:6px 11px;border-bottom:1px solid rgba(0,255,255,0.04);cursor:pointer;transition:background 0.1s}
+.lr2:hover{background:rgba(0,255,255,0.04)}
+.ld{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.ll2{flex:1;font-size:10px;color:#aaa;letter-spacing:0.5px}
+/* Toggle switch */
+.tog{position:relative;width:30px;height:15px;flex-shrink:0}
+.tog input{display:none}
+.tsl{position:absolute;inset:0;background:rgba(0,255,255,0.04);border:1px solid rgba(0,255,255,0.18);cursor:pointer;transition:all 0.18s}
+.tsl::after{content:'';position:absolute;left:2px;top:2px;width:9px;height:9px;background:rgba(0,255,255,0.28);transition:all 0.18s}
+.tog input:checked+.tsl{background:rgba(0,255,255,0.14);border-color:var(--c);box-shadow:0 0 6px rgba(0,255,255,0.3)}
+.tog input:checked+.tsl::after{transform:translateX(15px);background:var(--c);box-shadow:0 0 4px var(--c)}
+/* Camera buttons */
+.cbtn{display:block;width:100%;padding:6px 11px;background:transparent;border:none;border-bottom:1px solid rgba(0,255,255,0.04);color:rgba(0,255,255,0.5);font-family:var(--fn);font-size:10px;letter-spacing:1px;text-align:left;cursor:pointer;transition:all 0.12s}
+.cbtn:hover{background:rgba(0,255,255,0.07);color:var(--c);padding-left:15px}
+/* Scene buttons */
+.scrow{display:flex;gap:4px;padding:7px 11px;border-bottom:1px solid rgba(0,255,255,0.06)}
+.sb3{flex:1;background:transparent;border:1px solid rgba(0,255,255,0.18);color:rgba(0,255,255,0.42);font-family:var(--fn);font-size:9px;padding:4px 2px;cursor:pointer;letter-spacing:1px;transition:all 0.12s}
+.sb3.on,.sb3:hover{border-color:var(--c);color:var(--c);background:rgba(0,255,255,0.09)}
+
+/* ── TIMELINE ────────────────────── */
+#tp{
+  position:fixed;bottom:36px;left:50%;transform:translateX(-50%);
+  z-index:400;background:rgba(0,2,10,0.97);border:1px solid var(--bd);
+  padding:10px 18px;width:62%;min-width:480px;pointer-events:all;
+}
+.tph{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.tpl{font-size:9px;letter-spacing:3px;color:rgba(0,255,255,0.42)}
+#tpT{font-size:13px;letter-spacing:2px;color:var(--m)}
+#timeSl{width:100%;height:4px;margin:3px 0;accent-color:var(--c);cursor:pointer}
+.tpm{display:flex;justify-content:space-between;font-size:10px;color:rgba(0,255,136,0.5);margin-top:2px}
+
+/* ── TICKER ────────────────────── */
+#ticker{
+  position:fixed;bottom:32px;left:0;right:0;height:24px;z-index:149;
+  overflow:hidden;background:rgba(255,30,0,0.07);
+  border-top:1px solid rgba(255,50,0,0.22);
+  display:flex;align-items:center;pointer-events:none;
+}
+.tklbl{padding:0 8px;font-size:9px;color:rgba(255,100,50,0.7);white-space:nowrap;flex-shrink:0;border-right:1px solid rgba(255,50,0,0.22)}
+.tktxt{white-space:nowrap;font-size:9px;letter-spacing:1.5px;color:#ff6633;animation:tkscroll 110s linear infinite}
+@keyframes tkscroll{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+
+/* ── BOTTOM BAR ──────────────────── */
+#bb{
+  position:fixed;bottom:0;left:0;right:0;height:32px;z-index:500;
+  display:flex;align-items:center;gap:14px;padding:0 12px;
+  background:rgba(0,1,8,0.99);border-top:1px solid var(--bd);
+  font-size:9px;letter-spacing:1px;overflow:hidden;
+}
+.bsi{display:flex;align-items:center;gap:4px;color:rgba(0,255,255,0.4);white-space:nowrap}
+.bd2{width:5px;height:5px;border-radius:50%;animation:pulse 2.5s infinite}
+#sol{margin-left:auto;color:var(--g);letter-spacing:3px;white-space:nowrap}
+
+/* ── CCTV MODAL ──────────────────── */
+#cctvModal{
+  display:none;position:fixed;inset:0;z-index:600;
+  background:rgba(0,0,0,0.88);align-items:center;justify-content:center;
+}
+#cctvModal.show{display:flex}
+#cctvBox{background:#000a1a;border:1px solid var(--bd);width:840px;max-width:94vw;max-height:90vh;overflow:hidden}
+.cctvHdr{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--bd)}
+.cctvHdr span{font-size:10px;letter-spacing:3px;color:var(--c)}
+.cctvClose{background:transparent;border:1px solid var(--r);color:var(--r);font-family:var(--fn);font-size:10px;padding:3px 9px;cursor:pointer}
+.cctvGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px;max-height:calc(90vh - 50px);overflow-y:auto}
+.cctvCell{position:relative;background:#040a14;aspect-ratio:16/9;overflow:hidden;cursor:pointer;border:1px solid rgba(0,255,255,0.1)}
+.cctvCell:hover{border-color:var(--c)}
+.cctvCell:hover .cctvLbl{background:rgba(0,50,80,0.95)}
+.cctvImg{width:100%;height:100%;object-fit:cover;display:block}
+.cctvPh{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#020c18}
+.cctvPh span:first-child{font-size:18px}
+.cctvPh span:last-child{font-size:9px;letter-spacing:1px;color:rgba(0,255,255,0.3)}
+.cctvLbl{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.78);padding:3px 6px;font-size:9px;color:var(--c);letter-spacing:1px}
+
+/* ── CORNERS ──────────────────────── */
+.cor{position:fixed;width:14px;height:14px;border-style:solid;border-color:rgba(0,255,255,0.3);pointer-events:none;z-index:100}
+.ctl{top:52px;left:8px;border-width:1px 0 0 1px}
+.ctr{top:52px;right:8px;border-width:1px 1px 0 0}
+.cbl{bottom:58px;left:8px;border-width:0 0 1px 1px}
+.cbr{bottom:58px;right:8px;border-width:0 1px 1px 0}
+#xh{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:18px;height:18px;pointer-events:none;z-index:99;opacity:0.25}
+#xh::before,#xh::after{content:'';position:absolute;background:var(--c)}
+#xh::before{width:100%;height:1px;top:50%}
+#xh::after{width:1px;height:100%;left:50%}
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="LS">
+  <div id="LT">👁 GOD'S EYE</div>
+  <div id="LS2">4D GEOSPATIAL INTELLIGENCE PLATFORM v4.1</div>
+  <div id="LBarOuter"><div id="LF"></div></div>
+  <div id="LST">INITIALIZING...</div>
+  <div id="LErr"></div>
+</div>
+
+<!-- GLOBE -->
+<div id="cesiumContainer"></div>
+<div id="scanlines"></div>
+
+<!-- TOP BAR -->
+<div id="topBar">
+  <div id="logo">👁 GOD'S EYE</div>
+  <div class="sep"></div>
+  <div class="vmg">
+    <button class="vm on" data-m="normal">NORMAL</button>
+    <button class="vm nvg" data-m="nvg">◈ NVG</button>
+    <button class="vm flir" data-m="flir">⬛ FLIR</button>
+    <button class="vm crt" data-m="crt">▦ CRT</button>
+  </div>
+  <div class="sep"></div>
+  <button class="topbtn" onclick="openCCTV()">📷 LIVE CCTV</button>
+  <div id="topRight">
+    <div id="utcClock">--:--:-- UTC</div>
+    <div id="coordLine">LAT <span id="cLat">--</span> LON <span id="cLon">--</span> ALT <span id="cAlt">--</span>km</div>
+  </div>
+</div>
+
+<!-- SEARCH -->
+<div id="srchWrap">
+  <form id="srchForm">
+    <span>🔍</span>
+    <input id="si" type="text" placeholder="Any city, village, country, coords..." autocomplete="off">
+  </form>
+  <div id="srchRes"></div>
+</div>
+
+<!-- LEFT HUD -->
+<div id="hud">
+  <div class="ht">👁 4D SURVEILLANCE</div>
+  <div class="lr">
+    <div class="led" style="background:#0f0;box-shadow:0 0 8px #0f0"></div>
+    <span style="font-size:10px;color:rgba(0,255,136,0.6);margin-left:7px;letter-spacing:1px">SYSTEM LIVE</span>
+  </div>
+  <div class="sg">
+    <div class="st"><div class="sl">SATELLITES</div><div class="sv cy" id="cSat">—</div></div>
+    <div class="st"><div class="sl">FLIGHTS</div><div class="sv am" id="cFlt">—</div></div>
+    <div class="st"><div class="sl">MILITARY AC</div><div class="sv rd" id="cMil">—</div></div>
+    <div class="st"><div class="sl">VESSELS</div><div class="sv cy" id="cShip">—</div></div>
+    <div class="st"><div class="sl">EARTHQUAKES</div><div class="sv rd" id="cEQ">—</div></div>
+    <div class="st"><div class="sl">WILDFIRES</div><div class="sv or" id="cFire">—</div></div>
+    <div class="st"><div class="sl">GPS JAM</div><div class="sv mg" id="cJam">8</div></div>
+    <div class="st"><div class="sl">NUC SITES</div><div class="sv pu" id="cNuc">—</div></div>
+    <div class="st"><div class="sl">VOLCANOES</div><div class="sv or" id="cVol">—</div></div>
+    <div class="st"><div class="sl">MIL BASES</div><div class="sv rd" id="cBase">—</div></div>
+    <div class="st"><div class="sl">HURRICANES</div><div class="sv mg" id="cHurr">—</div></div>
+    <div class="st"><div class="sl">DATA SRC</div><div class="sv" id="cSrc" style="font-size:10px;color:#444">—</div></div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div id="rp">
+  <div class="ph">INTELLIGENCE LAYERS</div>
+  <div class="scrow">
+    <button class="sb3 on" id="s3D" onclick="setScene('3D')">3D</button>
+    <button class="sb3" id="s2D" onclick="setScene('2D')">MAP</button>
+    <button class="sb3" id="sCV" onclick="setScene('CV')">FLAT</button>
+  </div>
+
+  <!-- SPACE -->
+  <div class="sh" onclick="toggleSec(this)"><span class="sh-t">🛸 SPACE</span><span class="sh-a open">▶</span></div>
+  <div class="sb2 open">
+    <div class="lr2" onclick="tog('satellites',this)"><div class="ld" style="background:#00ffff;box-shadow:0 0 4px #00ffff"></div><span class="ll2">Satellites (TLE real orbits)</span><label class="tog"><input type="checkbox" id="lSat" checked><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('iss',this)"><div class="ld" style="background:#ff8800;box-shadow:0 0 4px #ff8800"></div><span class="ll2">ISS live + orbit trail</span><label class="tog"><input type="checkbox" id="lISS" checked><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('starlink',this)"><div class="ld" style="background:#8844ff;box-shadow:0 0 4px #8844ff"></div><span class="ll2">Starlink constellation</span><label class="tog"><input type="checkbox" id="lSL"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('debris',this)"><div class="ld" style="background:#887766"></div><span class="ll2">Space debris cloud</span><label class="tog"><input type="checkbox" id="lDeb"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('orbits',this)"><div class="ld" style="background:rgba(0,255,255,0.3)"></div><span class="ll2">Orbit trails</span><label class="tog"><input type="checkbox" id="lOrb" checked><span class="tsl"></span></label></div>
+  </div>
+
+  <!-- AVIATION -->
+  <div class="sh" onclick="toggleSec(this)"><span class="sh-t">✈ AVIATION</span><span class="sh-a open">▶</span></div>
+  <div class="sb2 open">
+    <div class="lr2" onclick="tog('flights',this)"><div class="ld" style="background:#ffee00;box-shadow:0 0 4px #ffee00"></div><span class="ll2">Live commercial flights</span><label class="tog"><input type="checkbox" id="lFlt" checked><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('military',this)"><div class="ld" style="background:#ff3300;box-shadow:0 0 4px #ff3300"></div><span class="ll2">Military aircraft (live)</span><label class="tog"><input type="checkbox" id="lMil" checked><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('nofly',this)"><div class="ld" style="background:#ff0000"></div><span class="ll2">No-fly zones</span><label class="tog"><input type="checkbox" id="lNFZ"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('airports',this)"><div class="ld" style="background:#aaffee"></div><span class="ll2">Major airports</span><label class="tog"><input type="checkbox" id="lApt"><span class="tsl"></span></label></div>
+  </div>
+
+  <!-- MARITIME -->
+  <div class="sh" onclick="toggleSec(this)"><span class="sh-t">🚢 MARITIME</span><span class="sh-a open">▶</span></div>
+  <div class="sb2 open">
+    <div class="lr2" onclick="tog('ships',this)"><div class="ld" style="background:#00ffff;box-shadow:0 0 4px #00ffff"></div><span class="ll2">Maritime traffic (AIS sim)</span><label class="tog"><input type="checkbox" id="lShip" checked><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('piracy',this)"><div class="ld" style="background:#ff3300"></div><span class="ll2">Piracy hotspots (IMB)</span><label class="tog"><input type="checkbox" id="lPir"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('cables',this)"><div class="ld" style="background:#00aa88"></div><span class="ll2">Submarine cables (real)</span><label class="tog"><input type="checkbox" id="lCab"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('naval',this)"><div class="ld" style="background:#0044ff"></div><span class="ll2">Naval operations</span><label class="tog"><input type="checkbox" id="lNav"><span class="tsl"></span></label></div>
+  </div>
+
+  <!-- HAZARDS -->
+  <div class="sh" onclick="toggleSec(this)"><span class="sh-t">🌋 HAZARDS</span><span class="sh-a open">▶</span></div>
+  <div class="sb2 open">
+    <div class="lr2" onclick="tog('seismic',this)"><div class="ld" style="background:#ff6600;box-shadow:0 0 4px #ff6600"></div><span class="ll2">Earthquakes USGS (live)</span><label class="tog"><input type="checkbox" id="lEQ" checked><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('wildfires',this)"><div class="ld" style="background:#ff4400;box-shadow:0 0 4px #ff4400"></div><span class="ll2">Wildfires NASA FIRMS</span><label class="tog"><input type="checkbox" id="lFire" checked><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('hurricanes',this)"><div class="ld" style="background:#ff00ff;box-shadow:0 0 4px #ff00ff"></div><span class="ll2">Hurricanes / cyclones</span><label class="tog"><input type="checkbox" id="lHurr" checked><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('volcanoes',this)"><div class="ld" style="background:#ff5500;box-shadow:0 0 4px #ff5500"></div><span class="ll2">Active volcanoes (20)</span><label class="tog"><input type="checkbox" id="lVol" checked><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('jamming',this)"><div class="ld" style="background:#ff0066;box-shadow:0 0 4px #ff0066"></div><span class="ll2">GPS jamming zones</span><label class="tog"><input type="checkbox" id="lJam" checked><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('tsunami',this)"><div class="ld" style="background:#0088ff"></div><span class="ll2">Tsunami risk zones</span><label class="tog"><input type="checkbox" id="lTsun"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('lightning',this)"><div class="ld" style="background:#ffff00"></div><span class="ll2">Lightning strikes (live sim)</span><label class="tog"><input type="checkbox" id="lLig"><span class="tsl"></span></label></div>
+  </div>
+
+  <!-- INTELLIGENCE -->
+  <div class="sh" onclick="toggleSec(this)"><span class="sh-t">💥 INTELLIGENCE</span><span class="sh-a">▶</span></div>
+  <div class="sb2">
+    <div class="lr2" onclick="tog('conflict',this)"><div class="ld" style="background:#ff0000"></div><span class="ll2">Active conflict zones</span><label class="tog"><input type="checkbox" id="lCon"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('bases',this)"><div class="ld" style="background:#ff3300"></div><span class="ll2">Military bases (20 real)</span><label class="tog"><input type="checkbox" id="lBas"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('nuclear',this)"><div class="ld" style="background:#ffff00;box-shadow:0 0 4px #ffff00"></div><span class="ll2">Nuclear facilities ☢</span><label class="tog"><input type="checkbox" id="lNuc"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('cyber',this)"><div class="ld" style="background:#00ff44"></div><span class="ll2">Cyber attack origins</span><label class="tog"><input type="checkbox" id="lCyb"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('drones',this)"><div class="ld" style="background:#888888"></div><span class="ll2">Drone operations</span><label class="tog"><input type="checkbox" id="lDrn"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('refugees',this)"><div class="ld" style="background:#ffaa44"></div><span class="ll2">Refugee camps (UNHCR)</span><label class="tog"><input type="checkbox" id="lRef"><span class="tsl"></span></label></div>
+  </div>
+
+  <!-- INFRASTRUCTURE -->
+  <div class="sh" onclick="toggleSec(this)"><span class="sh-t">🏗 INFRASTRUCTURE</span><span class="sh-a">▶</span></div>
+  <div class="sb2">
+    <div class="lr2" onclick="tog('launches',this)"><div class="ld" style="background:#00aaff"></div><span class="ll2">Space launch sites (12)</span><label class="tog"><input type="checkbox" id="lLnch"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('pipelines',this)"><div class="ld" style="background:#996633"></div><span class="ll2">Oil & gas pipelines</span><label class="tog"><input type="checkbox" id="lPipe"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('aurora',this)"><div class="ld" style="background:#00ff99"></div><span class="ll2">Aurora zones (NOAA)</span><label class="tog"><input type="checkbox" id="lAur"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('traffic',this)"><div class="ld" style="background:#ff8800"></div><span class="ll2">Ground vehicle traffic</span><label class="tog"><input type="checkbox" id="lTraf"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('cctv',this)"><div class="ld" style="background:#aaaaaa"></div><span class="ll2">📷 Public CCTV markers</span><label class="tog"><input type="checkbox" id="lCCTV"><span class="tsl"></span></label></div>
+    <div class="lr2" onclick="tog('labels',this)"><div class="ld" style="background:rgba(255,255,255,0.25)"></div><span class="ll2">Object labels</span><label class="tog"><input type="checkbox" id="lLbl" checked><span class="tsl"></span></label></div>
+  </div>
+
+  <!-- CAMERA PRESETS -->
+  <div class="ph" style="margin-top:1px">CAMERA PRESETS</div>
+  <button class="cbtn" data-la="20"   data-lo="0"      data-al="22000000">🌍 Full Earth</button>
+  <button class="cbtn" data-la="26.4" data-lo="56.5"   data-al="700000">🌊 Strait of Hormuz</button>
+  <button class="cbtn" data-la="24.5" data-lo="120.0"  data-al="550000">⚡ Taiwan Strait</button>
+  <button class="cbtn" data-la="38.0" data-lo="127.5"  data-al="500000">🔴 Korean Peninsula</button>
+  <button class="cbtn" data-la="49.0" data-lo="33.0"   data-al="600000">🚨 Ukraine Front</button>
+  <button class="cbtn" data-la="32.5" data-lo="53.0"   data-al="480000">☢ Iran Nuclear</button>
+  <button class="cbtn" data-la="31.5" data-lo="34.5"   data-al="320000">💥 Israel / Gaza</button>
+  <button class="cbtn" data-la="14.0" data-lo="114.0"  data-al="900000">🌏 South China Sea</button>
+  <button class="cbtn" data-la="40.7" data-lo="-74.0"  data-al="240000">🗽 New York</button>
+  <button class="cbtn" data-la="51.5" data-lo="-0.1"   data-al="220000">🇬🇧 London</button>
+  <button class="cbtn" data-la="35.6" data-lo="139.7"  data-al="200000">🇯🇵 Tokyo</button>
+  <button class="cbtn" data-la="25.2" data-lo="55.3"   data-al="180000">🇦🇪 Dubai</button>
+  <button class="cbtn" data-la="33.3" data-lo="44.4"   data-al="150000">🇮🇶 Baghdad</button>
+  <button class="cbtn" data-la="55.7" data-lo="37.6"   data-al="180000">🇷🇺 Moscow</button>
+  <button class="cbtn" data-la="39.9" data-lo="116.4"  data-al="180000">🇨🇳 Beijing</button>
+  <button class="cbtn" data-la="1.35" data-lo="103.82" data-al="150000">🇸🇬 Singapore</button>
+  <button class="cbtn" data-iss="1">🛸 Track ISS Live</button>
+</div>
+
+<!-- CORNERS + CROSSHAIR -->
+<div class="cor ctl"></div><div class="cor ctr"></div>
+<div class="cor cbl"></div><div class="cor cbr"></div>
+<div id="xh"></div>
+
+<!-- CCTV MODAL -->
+<div id="cctvModal">
+  <div id="cctvBox">
+    <div class="cctvHdr">
+      <span>📷 LIVE GLOBAL SURVEILLANCE FEEDS</span>
+      <button class="cctvClose" onclick="closeCCTV()">✕ CLOSE</button>
+    </div>
+    <div class="cctvGrid" id="cctvGrid"></div>
+  </div>
+</div>
+
+<!-- TIMELINE -->
+<div id="tp">
+  <div class="tph">
+    <span class="tpl">⏱ TEMPORAL CONTROL · 4D PLAYBACK</span>
+    <span id="tpT">—</span>
+  </div>
+  <input type="range" id="timeSl" min="-72" max="24" value="0" step="1">
+  <div class="tpm">
+    <span>-72h</span><span>-48h</span><span>-24h</span>
+    <span style="color:var(--m);font-weight:bold">NOW</span>
+    <span>+12h</span><span>+24h</span>
+  </div>
+</div>
+
+<!-- TICKER -->
+<div id="ticker">
+  <span class="tklbl">⚠ INTEL</span>
+  <span class="tktxt">
+    GPS JAMMING — EASTERN MEDITERRANEAN /// FLIGHT RESTRICTIONS — IRANIAN AIRSPACE ///
+    SEISMIC M4.8 — RING OF FIRE /// MILITARY EXERCISE — SOUTH CHINA SEA ///
+    AIS BLACKOUT — STRAIT OF HORMUZ /// GPS SPOOFING — BLACK SEA ///
+    AIRSPACE CLOSURE — UKRAINE ZONE /// ISS ORBIT CORRECTION BURN COMPLETED ///
+    NUCLEAR ACTIVITY — IRAN NATANZ /// WILDFIRE OUTBREAK — CALIFORNIA ///
+    HURRICANE ALERT — ATLANTIC BASIN /// UNIDENTIFIED VESSEL — TAIWAN STRAIT ///
+    INTERCEPT — KALININGRAD AIRSPACE /// DRONE ACTIVITY — UKRAINE FRONT ///
+  </span>
+</div>
+
+<!-- BOTTOM BAR -->
+<div id="bb">
+  <div class="bsi"><div class="bd2" style="background:#0f0;box-shadow:0 0 5px #0f0"></div>LIVE</div>
+  <div class="bsi"><div class="bd2" style="background:var(--c)"></div><span id="bSat">SAT:—</span></div>
+  <div class="bsi"><div class="bd2" style="background:var(--y)"></div><span id="bFlt">FLT:—</span></div>
+  <div class="bsi"><div class="bd2" style="background:var(--r)"></div><span id="bEQ">EQ:—</span></div>
+  <div class="bsi"><div class="bd2" style="background:var(--o)"></div><span id="bFire">FIRE:—</span></div>
+  <div class="bsi"><div class="bd2" style="background:var(--m)"></div>JAM:8</div>
+  <div id="sol">● GOD'S EYE v4.1 ONLINE</div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ═══ TOKEN ═══════════════════════════════════ */
+const TOKEN='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyMzg4ODRiMS05MTg2LTQ3ZWUtODdkYS1iMWI1NDQ2N2Y0ZGIiLCJpZCI6NDAzMTAxLCJpYXQiOjE3NzM0MDkzODl9.r_yNdcbiwZUpdLpl4bkxktmEq_1ZzDmjkZVRK2jDeJw';
+
+/* ═══ GLOBALS ══════════════════════════════════ */
+let V=null,SC=null,GB=null;
+let satPts=null,slPts=null,debPts=null;
+let satRecs=[],slRecs=[],issRec=null,issOrb=null;
+let postFx=null,curMode='normal',timeOff=0;
+let ligInt=null,srchTimer=null;
+const E={
+  mil:[],ship:[],flt:[],eq:[],jam:[],fire:[],hurr:[],vol:[],
+  base:[],nuc:[],cyber:[],con:[],cable:[],pipe:[],
+  launch:[],piracy:[],nofly:[],naval:[],apt:[],
+  refugee:[],cctv:[],traf:[],aurora:[],tsun:[],drone:[]
+};
+const LAY={
+  satellites:true,iss:true,starlink:false,debris:false,orbits:true,
+  flights:true,military:true,nofly:false,airports:false,
+  ships:true,piracy:false,cables:false,naval:false,
+  seismic:true,wildfires:true,hurricanes:true,volcanoes:true,
+  jamming:true,tsunami:false,lightning:false,
+  conflict:false,bases:false,nuclear:false,cyber:false,drones:false,
+  launches:false,pipelines:false,aurora:false,
+  traffic:false,cctv:false,labels:true,refugees:false
+};
+
+/* ═══ LOAD HELPERS ════════════════════════════ */
+function ld(p,t){
+  document.getElementById('LF').style.width=p+'%';
+  if(t)document.getElementById('LST').textContent=t;
+}
+function lerr(t){
+  const e=document.getElementById('LErr');e.style.display='block';e.textContent='⚠ '+t;
+}
+function hideLoader(){
+  const e=document.getElementById('LS');
+  e.style.opacity='0';setTimeout(()=>{e.style.display='none';},900);
+}
+
+/* ═══ DATA ═════════════════════════════════════ */
+const JAM_ZONES=[
+  {n:'EASTERN MED',la:35.0,lo:33.0,r:240000},{n:'BLACK SEA',la:45.0,lo:34.0,r:280000},
+  {n:'IRAN',la:32.0,lo:54.0,r:380000},{n:'N.KOREA',la:37.5,lo:127.5,r:170000},
+  {n:'KALININGRAD',la:54.7,lo:20.5,r:190000},{n:'CRIMEA',la:45.3,lo:34.5,r:210000},
+  {n:'SYRIA',la:35.0,lo:38.5,r:170000},{n:'S.CHINA SEA',la:14.0,lo:113.0,r:330000},
+];
+const VOLCANOES=[
+  {n:'Kilauea',la:19.42,lo:-155.29,s:'erupting'},{n:'Etna',la:37.75,lo:15.00,s:'active'},
+  {n:'Stromboli',la:38.79,lo:15.21,s:'erupting'},{n:'Sakurajima',la:31.58,lo:130.66,s:'active'},
+  {n:'Merapi',la:-7.54,lo:110.44,s:'alert'},{n:'Nyiragongo',la:-1.52,lo:29.25,s:'erupting'},
+  {n:'Popocatepetl',la:19.02,lo:-98.62,s:'active'},{n:'Fuego',la:14.47,lo:-90.88,s:'erupting'},
+  {n:'Erta Ale',la:13.60,lo:40.67,s:'erupting'},{n:'Krakatau',la:-6.10,lo:105.42,s:'active'},
+  {n:'Mauna Loa',la:19.47,lo:-155.60,s:'active'},{n:'Klyuchevskoy',la:56.05,lo:160.64,s:'erupting'},
+  {n:'Ubinas',la:-16.35,lo:-70.90,s:'active'},{n:'Semeru',la:-8.11,lo:112.92,s:'erupting'},
+  {n:'Campi Flegrei',la:40.83,lo:14.14,s:'alert'},{n:'Taal',la:14.00,lo:120.99,s:'alert'},
+  {n:'White Island',la:-37.52,lo:177.18,s:'active'},{n:'Piton Fournaise',la:-21.24,lo:55.71,s:'erupting'},
+  {n:'Yasur',la:-19.52,lo:169.44,s:'erupting'},{n:'Sinabung',la:3.17,lo:98.39,s:'active'},
+];
+const MIL_BASES=[
+  {n:'RAF Akrotiri',c:'🇬🇧',la:34.59,lo:32.99},{n:'Incirlik AB',c:'🇹🇷',la:37.00,lo:35.43},
+  {n:'Diego Garcia',c:'🇺🇸',la:-7.32,lo:72.41},{n:'Al-Udeid AB',c:'🇺🇸',la:25.11,lo:51.31},
+  {n:'Ramstein AB',c:'🇺🇸',la:49.44,lo:7.60},{n:'Camp Lemonnier',c:'🇺🇸',la:11.55,lo:43.15},
+  {n:'Kadena AB',c:'🇺🇸',la:26.35,lo:127.77},{n:'Hmeimim Syria',c:'🇷🇺',la:35.40,lo:36.07},
+  {n:'PLAN Djibouti',c:'🇨🇳',la:11.56,lo:43.14},{n:'NSA Bahrain',c:'🇺🇸',la:26.22,lo:50.61},
+  {n:'Anderson AFB',c:'🇺🇸',la:13.58,lo:144.93},{n:'Fiery Cross Reef',c:'🇨🇳',la:9.55,lo:114.22},
+  {n:'Mischief Reef',c:'🇨🇳',la:9.91,lo:115.53},{n:'Kaliningrad Fleet',c:'🇷🇺',la:54.72,lo:20.51},
+  {n:'Sevastopol Base',c:'🇷🇺',la:44.62,lo:33.52},{n:'Tartus Naval',c:'🇷🇺',la:34.89,lo:35.88},
+  {n:'Guantanamo Bay',c:'🇺🇸',la:19.90,lo:-75.10},{n:'Camp Bondsteel',c:'🇺🇸',la:42.35,lo:21.35},
+  {n:'RAF Fairford',c:'🇬🇧',la:51.68,lo:-1.79},{n:'Spangdahlem',c:'🇺🇸',la:49.97,lo:6.69},
+];
+const NUCLEAR_SITES=[
+  {n:'Natanz',c:'🇮🇷',la:33.72,lo:51.73,t:'enrichment'},{n:'Fordow',c:'🇮🇷',la:34.88,lo:49.21,t:'enrichment'},
+  {n:'Bushehr NPP',c:'🇮🇷',la:28.83,lo:50.89,t:'power'},{n:'Yongbyon',c:'🇰🇵',la:39.79,lo:125.75,t:'weapons'},
+  {n:'Dimona',c:'🇮🇱',la:31.00,lo:35.15,t:'research'},{n:'Los Alamos',c:'🇺🇸',la:35.88,lo:-106.30,t:'research'},
+  {n:'Chelyabinsk',c:'🇷🇺',la:55.60,lo:60.64,t:'weapons'},{n:'Arzamas-16',c:'🇷🇺',la:55.76,lo:43.30,t:'weapons'},
+  {n:'Lop Nor',c:'🇨🇳',la:40.56,lo:89.88,t:'historical'},{n:'Kahuta',c:'🇵🇰',la:33.62,lo:73.40,t:'enrichment'},
+  {n:'Sellafield',c:'🇬🇧',la:54.42,lo:-3.50,t:'reprocessing'},{n:'La Hague',c:'🇫🇷',la:49.68,lo:-1.87,t:'reprocessing'},
+  {n:'Trident Faslane',c:'🇬🇧',la:56.05,lo:-4.82,t:'submarine'},{n:'NNSS Nevada',c:'🇺🇸',la:37.12,lo:-116.05,t:'historical'},
+  {n:'Semipalatinsk',c:'🇰🇿',la:50.07,lo:78.43,t:'historical'},{n:'Sandia NL',c:'🇺🇸',la:35.05,lo:-106.54,t:'research'},
+  {n:'Oak Ridge',c:'🇺🇸',la:36.02,lo:-84.25,t:'research'},{n:'Palmachim',c:'🇮🇱',la:31.90,lo:34.69,t:'research'},
+  {n:'Naro Center',c:'🇰🇷',la:34.43,lo:127.54,t:'research'},{n:'Bushehr 2',c:'🇮🇷',la:28.90,lo:50.90,t:'power'},
+];
+const LAUNCH_SITES=[
+  {n:'Kennedy Space Center',c:'🇺🇸',la:28.52,lo:-80.65},{n:'Baikonur',c:'🇷🇺',la:45.92,lo:63.34},
+  {n:'Jiuquan',c:'🇨🇳',la:40.96,lo:100.29},{n:'Wenchang',c:'🇨🇳',la:19.61,lo:110.95},
+  {n:'Vandenberg SFB',c:'🇺🇸',la:34.74,lo:-120.57},{n:'Guiana CSG',c:'🇫🇷',la:5.24,lo:-52.77},
+  {n:'Tanegashima',c:'🇯🇵',la:30.40,lo:130.97},{n:'Sriharikota',c:'🇮🇳',la:13.73,lo:80.23},
+  {n:'SpaceX Starbase',c:'🇺🇸',la:25.99,lo:-97.16},{n:'Plesetsk',c:'🇷🇺',la:62.93,lo:40.69},
+  {n:'Naro Space Ctr',c:'🇰🇷',la:34.43,lo:127.54},{n:'Palmachim',c:'🇮🇱',la:31.90,lo:34.69},
+];
+const SUBMARINE_CABLES=[
+  {n:'SEA-ME-WE 3',pts:[[-33.9,151.2],[1.4,104.0],[6.9,79.8],[11.6,43.1],[30.0,32.3],[36.9,10.2],[51.5,-0.1]]},
+  {n:'TAT-14',pts:[[40.7,-74.0],[43.7,-7.3],[51.5,-0.1],[52.5,4.8],[53.5,10.0]]},
+  {n:'Trans-Pacific',pts:[[37.7,-122.4],[21.3,-157.8],[1.4,104.0],[35.7,139.7]]},
+  {n:'Africa Coast',pts:[[51.5,-0.1],[38.7,-9.1],[14.7,-17.4],[5.3,-4.0],[-4.3,15.3],[-33.9,18.4]]},
+  {n:'India-ME',pts:[[1.4,104.0],[6.9,79.8],[20.0,63.0],[25.3,55.4],[30.0,32.3]]},
+  {n:'Atlantic',pts:[[40.7,-74.0],[38.7,-9.1],[51.5,-0.1]]},
+];
+const REFUGEE_CAMPS=[
+  {n:'Kutupalong',la:21.21,lo:92.16,pop:900000},{n:'Azraq',la:31.82,lo:36.82,pop:60000},
+  {n:'Zaatari',la:32.29,lo:36.31,pop:80000},{n:'Kakuma',la:3.72,lo:34.88,pop:200000},
+  {n:'Dadaab',la:1.77,lo:40.31,pop:230000},{n:'Bidi Bidi',la:3.33,lo:31.32,pop:280000},
+  {n:'Mahama',la:-2.27,lo:30.78,pop:64000},{n:'Minawao',la:10.68,lo:14.64,pop:62000},
+];
+const CONFLICT_ZONES=[
+  {n:'Ukraine East',la:48.5,lo:37.5,r:250000,c:'#ff0000'},{n:'Gaza Strip',la:31.4,lo:34.4,r:28000,c:'#ff0000'},
+  {n:'Yemen',la:15.5,lo:44.5,r:350000,c:'#ff3300'},{n:'Sudan',la:15.5,lo:32.5,r:280000,c:'#ff4400'},
+  {n:'Myanmar',la:19.0,lo:96.5,r:300000,c:'#ff5500'},{n:'Sahel',la:15.0,lo:0.0,r:500000,c:'#ff6600'},
+  {n:'DRC East',la:-1.5,lo:29.0,r:200000,c:'#ff4400'},{n:'Somalia',la:5.0,lo:45.0,r:300000,c:'#ff5500'},
+  {n:'Haiti',la:18.9,lo:-72.3,r:35000,c:'#ff6600'},{n:'N.Mozambique',la:-13.0,lo:40.5,r:150000,c:'#ff5500'},
+];
+const AIRPORTS=[
+  {n:'JFK',la:40.64,lo:-73.78},{n:'LAX',la:33.94,lo:-118.41},{n:'LHR',la:51.47,lo:-0.45},
+  {n:'CDG',la:49.01,lo:2.55},{n:'HND',la:35.55,lo:139.78},{n:'SYD',la:-33.94,lo:151.18},
+  {n:'DXB',la:25.25,lo:55.36},{n:'SIN',la:1.36,lo:103.99},{n:'IST',la:41.27,lo:28.74},
+  {n:'PEK',la:40.08,lo:116.58},{n:'GRU',la:-23.43,lo:-46.47},{n:'NRT',la:35.77,lo:140.39},
+  {n:'AMS',la:52.31,lo:4.76},{n:'FRA',la:50.03,lo:8.55},{n:'ICN',la:37.46,lo:126.44},
+  {n:'BKK',la:13.69,lo:100.75},{n:'DEL',la:28.57,lo:77.10},{n:'JNB',la:-26.13,lo:28.24},
+];
+const AIRPORTS_FOR_FLIGHTS=[
+  {c:'JFK',la:40.64,lo:-73.78},{c:'LAX',la:33.94,lo:-118.41},{c:'LHR',la:51.47,lo:-0.45},
+  {c:'CDG',la:49.01,lo:2.55},{c:'HND',la:35.55,lo:139.78},{c:'SYD',la:-33.94,lo:151.18},
+  {c:'DXB',la:25.25,lo:55.36},{c:'SIN',la:1.36,lo:103.99},{c:'IST',la:41.27,lo:28.74},
+  {c:'PEK',la:40.08,lo:116.58},{c:'GRU',la:-23.43,lo:-46.47},{c:'NRT',la:35.77,lo:140.39},
+  {c:'AMS',la:52.31,lo:4.76},{c:'FRA',la:50.03,lo:8.55},{c:'ICN',la:37.46,lo:126.44},
+  {c:'BKK',la:13.69,lo:100.75},{c:'DEL',la:28.57,lo:77.10},{c:'JNB',la:-26.13,lo:28.24},
+  {c:'CAI',la:30.11,lo:31.40},{c:'BOM',la:19.09,lo:72.87},
+];
+const AIRLINES=['UAL','AAL','DAL','BAW','AFR','DLH','SIA','QFA','UAE','THY','QTR','KLM','JAL','ANA','EZY','RYR','SWR','IBE','TK','FZ','SV','EK'];
+const SHIP_LANES=[
+  {la:30,lo:-70,sp:20},{la:25,lo:55,sp:15},{la:1,lo:104,sp:10},{la:35,lo:140,sp:15},
+  {la:51,lo:2,sp:12},{la:-33,lo:18,sp:10},{la:26,lo:56,sp:8},{la:10,lo:107,sp:12},
+  {la:40,lo:15,sp:15},{la:20,lo:-40,sp:20},{la:-10,lo:-35,sp:15},{la:5,lo:0,sp:20},
+  {la:-34,lo:-57,sp:12},{la:35,lo:-10,sp:15},{la:60,lo:5,sp:18},{la:22,lo:90,sp:10},
+];
+const CCTV_FEEDS=[
+  {n:'Times Square NYC',la:40.758,lo:-73.985,url:'https://www.earthcam.com/usa/newyork/timessquare/?cam=tsrobo1',img:'https://images.earthcam.com/ec_metros/ourcams/tsrobo1.jpg'},
+  {n:'Hollywood Sign LA',la:34.134,lo:-118.321,url:'https://www.earthcam.com/usa/california/losangeles/hollywoodsign/?cam=hollywoodsign',img:'https://images.earthcam.com/ec_metros/ourcams/hollywoodsign.jpg'},
+  {n:'Eiffel Tower Paris',la:48.858,lo:2.294,url:'https://www.earthcam.com/world/france/paris/?cam=eiffeltower',img:'https://images.earthcam.com/ec_metros/ourcams/eiffeltower.jpg'},
+  {n:'Big Ben London',la:51.501,lo:-0.124,url:'https://www.earthcam.com/world/england/london/?cam=bigben',img:'https://images.earthcam.com/ec_metros/ourcams/bigben.jpg'},
+  {n:'Sydney Harbour',la:-33.857,lo:151.215,url:'https://www.earthcam.com/world/australia/sydney/?cam=sydneyharbour',img:'https://images.earthcam.com/ec_metros/ourcams/sydneyoperahouse.jpg'},
+  {n:'Dubai Burj Khalifa',la:25.197,lo:55.274,url:'https://www.earthcam.com/world/uae/dubai/',img:''},
+  {n:'Niagara Falls',la:43.082,lo:-79.074,url:'https://www.earthcam.com/usa/newyork/niagarafalls/',img:''},
+  {n:'Venice Canal',la:45.434,lo:12.338,url:'https://www.earthcam.com/world/italy/venice/',img:''},
+  {n:'Tokyo Shibuya',la:35.659,lo:139.700,url:'https://www.youtube.com/watch?v=kEZBpPGmNbU',img:''},
+  {n:'Moscow Red Square',la:55.754,lo:37.621,url:'https://www.earthcam.com/world/russia/moscow/',img:''},
+  {n:'Singapore Marina',la:1.283,lo:103.861,url:'https://www.marina-bay.sg/',img:''},
+  {n:'Hong Kong Harbour',la:22.283,lo:114.158,url:'https://www.earthcam.com/world/hongkong/',img:''},
+];
+const MIL_FLIGHTS=[
+  {id:'USAF F-35A',nat:'🇺🇸',la:36.8,lo:48.0,alt:10500,hdg:270,vx:-0.009,vy:0.001},
+  {id:'RUS Su-35S',nat:'🇷🇺',la:51.5,lo:30.0,alt:9000,hdg:90,vx:0.008,vy:0.001},
+  {id:'PLA J-20',nat:'🇨🇳',la:24.0,lo:121.0,alt:11000,hdg:200,vx:0.001,vy:-0.008},
+  {id:'RUS Tu-160',nat:'🇷🇺',la:68.0,lo:14.0,alt:13000,hdg:195,vx:0.001,vy:-0.006},
+  {id:'USN P-8A',nat:'🇺🇸',la:22.0,lo:114.5,alt:8200,hdg:45,vx:0.006,vy:0.006},
+  {id:'IDF F-16I',nat:'🇮🇱',la:32.0,lo:35.0,alt:9500,hdg:5,vx:0.001,vy:0.008},
+  {id:'RAF Typhoon',nat:'🇬🇧',la:51.5,lo:-0.5,alt:9000,hdg:90,vx:0.009,vy:0.001},
+  {id:'USMC F/A-18',nat:'🇺🇸',la:35.4,lo:139.8,alt:10000,hdg:270,vx:-0.008,vy:0.001},
+  {id:'PLA J-16',nat:'🇨🇳',la:30.0,lo:108.0,alt:12000,hdg:45,vx:0.007,vy:0.007},
+  {id:'RUS MiG-31',nat:'🇷🇺',la:55.0,lo:37.0,alt:15000,hdg:180,vx:0.001,vy:-0.009},
+  {id:'IRGC F-14',nat:'🇮🇷',la:30.5,lo:50.0,alt:9000,hdg:90,vx:0.007,vy:0.001},
+  {id:'PAF JF-17',nat:'🇵🇰',la:30.0,lo:70.0,alt:9500,hdg:270,vx:-0.008,vy:0.001},
+  {id:'KAF F-15K',nat:'🇰🇷',la:37.0,lo:127.0,alt:10000,hdg:90,vx:0.008,vy:0.001},
+  {id:'INF Su-30',nat:'🇮🇳',la:20.0,lo:80.0,alt:10000,hdg:45,vx:0.007,vy:0.007},
+  {id:'RAF B-52H',nat:'🇺🇸',la:51.7,lo:-1.8,alt:14000,hdg:180,vx:0.001,vy:-0.006},
+];
+const TLE_FALLBACK=`ISS (ZARYA)
+1 25544U 98067A   24340.54167824  .00009784  00000-0  18107-3 0  9994
+2 25544  51.6398 285.8024 0006380  35.4500 324.7200 15.50022766486413
+TIANGONG (CSS)
+1 48274U 21035A   24340.52083333  .00008000  00000-0  17000-3 0  9997
+2 48274  41.4742 342.1200 0006890  24.6700 335.4600 15.60000000188642
+HUBBLE SPACE TELESCOPE
+1 20580U 90037B   24340.57638889  .00001000  00000-0  45000-4 0  9990
+2 20580  28.4700 201.3400 0002700 280.0000  80.0000 15.09000000232560
+NOAA 18
+1 28654U 05018A   24340.54000000  .00000100  00000-0  70000-4 0  9994
+2 28654  99.0000  10.0000 0013000 130.0000 231.0000 14.10000000999876
+TERRA
+1 25994U 99068A   24340.54000000  .00000050  00000-0  18000-4 0  9992
+2 25994  98.2100  20.1200 0001400 100.0000 260.1000 14.57000000289870
+GOES-16
+1 41866U 16071A   24340.50000000 -.00000300  00000-0  00000+0 0  9995
+2 41866   0.0500 359.8000 0000800 270.0000  90.0000  1.00273688029476
+SENTINEL-2A
+1 40697U 15028A   24340.54000000  .00000050  00000-0  15000-4 0  9995
+2 40697  98.5700  20.4500 0001200  88.0000 272.1000 14.30000000464680
+GPS BIIR-11
+1 28190U 04009A   24340.50000000 -.00000001  00000-0  00000+0 0  9993
+2 28190  56.0000 180.0000 0100000 120.0000 241.0000  2.00563701149876`;
+
+/* ═══ ICON FACTORY ════════════════════════════ */
+function mkArrow(fill,w=16){
+  const c=document.createElement('canvas');c.width=c.height=w;
+  const x=c.getContext('2d');x.fillStyle=fill;
+  x.beginPath();x.moveTo(w/2,0);x.lineTo(w*.82,w);x.lineTo(w/2,w*.68);x.lineTo(w*.18,w);x.closePath();x.fill();
+  return c.toDataURL();
+}
+const ARROW_YEL=mkArrow('#ffee00'),ARROW_RED=mkArrow('#ff3300');
+
+/* ═══ TLE PARSER ══════════════════════════════ */
+function parseTLE(txt){
+  const lines=txt.replace(/\r/g,'').split('\n').map(l=>l.trim()).filter(Boolean);
+  const recs=[];let i=0;
+  while(i<lines.length){
+    if(lines[i+1]&&lines[i+2]&&lines[i+1][0]==='1'&&lines[i+2][0]==='2'){
+      try{const sr=satellite.twoline2satrec(lines[i+1],lines[i+2]);if(sr&&sr.error===0)recs.push({name:lines[i],sr});}catch(ex){}
+      i+=3;
+    }else{i++;}
+  }
+  return recs;
+}
+function satPos(sr,d){
+  try{
+    const pv=satellite.propagate(sr,d);
+    if(!pv||!pv.position||isNaN(pv.position.x))return null;
+    const gmst=satellite.gstime(d),geo=satellite.eciToGeodetic(pv.position,gmst);
+    const lon=satellite.degreesLong(geo.longitude),lat=satellite.degreesLat(geo.latitude),alt=geo.height*1000;
+    if(isNaN(lon)||isNaN(lat)||alt<-1000||alt>4.1e8)return null;
+    return{lon,lat,alt:Math.max(alt,5000)};
+  }catch(ex){return null;}
+}
+
+/* ═══ FETCH WITH TIMEOUT ══════════════════════ */
+async function fT(url,ms=8000){
+  try{
+    const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),ms);
+    const r=await fetch(url,{signal:ctrl.signal});clearTimeout(tid);
+    return r.ok?r:null;
+  }catch(ex){return null;}
+}
+
+/* ═══════════════════════════════════════════════
+   ✅ BULLETPROOF CESIUM BOOT
+   Fixed: imageryProvider removed from constructor,
+   full try/catch, works in iframes & apps
+═══════════════════════════════════════════════ */
+async function boot(){
+  try{
+    ld(5,'INITIALIZING CESIUM...');
+
+    // ── SET TOKEN FIRST ──
+    Cesium.Ion.defaultAccessToken=TOKEN;
+
+    // ── CREATE VIEWER ── No imageryProvider in constructor (fixes iframe crash)
+    V=new Cesium.Viewer('cesiumContainer',{
+      animation:false,
+      timeline:false,
+      baseLayerPicker:false,
+      fullscreenButton:false,
+      geocoder:false,
+      homeButton:false,
+      infoBox:true,
+      sceneModePicker:false,
+      navigationHelpButton:false,
+      selectionIndicator:true,
+      targetFrameRate:60,
+      requestRenderMode:false,
+      // ✅ DO NOT pass imageryProvider or terrainProvider here
+    });
+
+    SC=V.scene;GB=SC.globe;
+    GB.enableLighting=true;
+    GB.nightFadeOutDistance=1e7;
+    GB.nightFadeInDistance=5e6;
+    GB.atmosphereLightIntensity=3.5;
+    GB.showGroundAtmosphere=true;
+    SC.backgroundColor=Cesium.Color.BLACK;
+    SC.fog.enabled=false;
+    SC.sun.show=true;
+    SC.moon.show=true;
+
+    try{V.cesiumWidget.creditContainer.style.display='none';}catch(ex){}
+
+    ld(15,'LOADING IMAGERY...');
+
+    // ── IMAGERY: Try Bing Ion, fall back to ArcGIS ──
+    // Remove default layer first
+    V.imageryLayers.removeAll();
+
+    let imgLoaded=false;
+    try{
+      const img=await Cesium.IonImageryProvider.fromAssetId(2);
+      V.imageryLayers.addImageryProvider(img);
+      imgLoaded=true;
+      ld(25,'BING AERIAL IMAGERY LOADED');
+    }catch(ex){
+      // Silent fallback to ArcGIS - always works
+    }
+
+    if(!imgLoaded){
+      try{
+        V.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+          url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          maximumLevel:19,
+          credit:'Esri, Maxar'
+        }));
+        ld(25,'ARCGIS SATELLITE IMAGERY');
+      }catch(ex){
+        // Last resort: OpenStreetMap
+        V.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+          url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          subdomains:['a','b','c'],maximumLevel:18
+        }));
+        ld(25,'OSM BASE MAP');
+      }
+    }
+
+    // ── TERRAIN ──
+    ld(30,'LOADING TERRAIN...');
+    try{
+      V.terrainProvider=await Cesium.CesiumTerrainProvider.fromIonAssetId(1);
+      ld(37,'WORLD TERRAIN LOADED');
+    }catch(ex){
+      ld(37,'FLAT TERRAIN');
+    }
+
+    // ── GOOGLE 3D TILES (optional, don't block on failure) ──
+    ld(38,'LOADING 3D TILES...');
+    try{
+      const g3d=await Cesium.Cesium3DTileset.fromIonAssetId(2275207);
+      SC.primitives.add(g3d);
+      ld(44,'✓ GOOGLE 3D TILES ACTIVE');
+    }catch(ex){
+      ld(44,'BASE TERRAIN ACTIVE');
+    }
+
+    // ── POINT COLLECTIONS ──
+    satPts=SC.primitives.add(new Cesium.PointPrimitiveCollection());
+    slPts=SC.primitives.add(new Cesium.PointPrimitiveCollection());
+    debPts=SC.primitives.add(new Cesium.PointPrimitiveCollection());
+
+    // ── INITIAL CAMERA ──
+    V.camera.setView({
+      destination:Cesium.Cartesian3.fromDegrees(20,25,22000000),
+      orientation:{heading:0,pitch:-Cesium.Math.PI_OVER_TWO,roll:0}
+    });
+
+    // ── MOUSE COORDINATE TRACKING ──
+    const evH=new Cesium.ScreenSpaceEventHandler(SC.canvas);
+    evH.setInputAction(mv=>{
+      try{
+        const ray=V.camera.getPickRay(mv.endPosition);
+        if(!ray)return;
+        const hit=SC.globe.pick(ray,SC);
+        if(hit){
+          const c=Cesium.Cartographic.fromCartesian(hit);
+          document.getElementById('cLat').textContent=Cesium.Math.toDegrees(c.latitude).toFixed(4);
+          document.getElementById('cLon').textContent=Cesium.Math.toDegrees(c.longitude).toFixed(4);
+        }
+      }catch(ex){}
+    },Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+    SC.postRender.addEventListener(hudTick);
+
+    // ── LOAD ALL DATA ──
+    ld(50,'FETCHING SATELLITES...');
+    await loadSatellites();
+
+    ld(60,'RENDERING LAYERS...');
+    renderJamming();
+    renderMilitary();
+    renderVolcanoes();
+
+    ld(67,'GENERATING MARITIME...');
+    generateShips(240);
+
+    ld(73,'FETCHING FLIGHTS...');
+    await loadFlights();
+
+    ld(81,'FETCHING USGS SEISMIC...');
+    await loadEarthquakes();
+
+    ld(87,'FETCHING HAZARD DATA...');
+    await loadHurricanes();
+    await loadWildfires();
+
+    ld(95,'WIRING UI & SEARCH...');
+    wireUI();
+    wireSearch();
+    wireTimeline();
+    buildCCTV();
+    startIntervals();
+
+    ld(100,'● ALL SYSTEMS ONLINE');
+    setTimeout(hideLoader,600);
+
+  }catch(crash){
+    // Show the actual error on screen
+    lerr('BOOT ERROR: '+String(crash).slice(0,120));
+    ld(100,'ERROR — CHECK CONSOLE');
+    console.error('[GOD\'S EYE BOOT CRASH]',crash);
+  }
+}
+
+/* ═══ SHADERS ═════════════════════════════════ */
+const SHADERS={
+nvg:`uniform sampler2D colorTexture;
+in vec2 v_textureCoordinates;
+void main(){
+  vec4 c=texture(colorTexture,v_textureCoordinates);
+  float lum=dot(c.rgb,vec3(0.299,0.587,0.114));
+  lum=pow(clamp(lum*2.1,0.0,1.0),0.68);
+  float n=fract(sin(dot(v_textureCoordinates*800.0,vec2(127.1,311.7)))*43758.5);
+  lum=clamp(lum+(n-0.5)*0.045,0.0,1.0);
+  vec2 uv=v_textureCoordinates-0.5;
+  lum*=max(1.0-dot(uv,uv)*1.8,0.0);
+  out_FragColor=vec4(lum*0.02,lum*1.10,lum*0.04,1.0);
+}`,
+flir:`uniform sampler2D colorTexture;
+in vec2 v_textureCoordinates;
+void main(){
+  vec4 c=texture(colorTexture,v_textureCoordinates);
+  float h=clamp(dot(c.rgb,vec3(0.299,0.587,0.114)),0.0,1.0);
+  vec3 col;
+  if(h<0.14) col=mix(vec3(0.02,0.02,0.12),vec3(0.0,0.0,0.6),h*7.14);
+  else if(h<0.28) col=mix(vec3(0.0,0.0,0.6),vec3(0.0,0.5,0.9),(h-0.14)*7.14);
+  else if(h<0.42) col=mix(vec3(0.0,0.5,0.9),vec3(0.0,0.9,0.2),(h-0.28)*7.14);
+  else if(h<0.56) col=mix(vec3(0.0,0.9,0.2),vec3(0.8,0.8,0.0),(h-0.42)*7.14);
+  else if(h<0.70) col=mix(vec3(0.8,0.8,0.0),vec3(1.0,0.3,0.0),(h-0.56)*7.14);
+  else if(h<0.84) col=mix(vec3(1.0,0.3,0.0),vec3(1.0,0.0,0.0),(h-0.70)*7.14);
+  else col=mix(vec3(1.0,0.0,0.0),vec3(1.0,1.0,1.0),(h-0.84)*6.25);
+  col*=0.92+sin(v_textureCoordinates.y*400.0)*0.04+0.04;
+  out_FragColor=vec4(col,1.0);
+}`,
+crt:`uniform sampler2D colorTexture;
+in vec2 v_textureCoordinates;
+void main(){
+  vec2 uv=v_textureCoordinates;
+  vec2 dc=uv-0.5;float r2=dot(dc,dc);
+  uv+=dc*r2*0.09;
+  if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){out_FragColor=vec4(0,0,0,1);return;}
+  float ca=0.0014;
+  vec3 col=vec3(texture(colorTexture,uv+vec2(ca,0)).r,texture(colorTexture,uv).g,texture(colorTexture,uv-vec2(ca,0)).b);
+  col*=0.76+sin(uv.y*700.0)*0.12+0.12;
+  col*=max(1.0-r2*2.4,0.0);
+  col=mix(col,vec3(col.r*0.07,col.g*1.24,col.b*0.09),0.32);
+  col+=(fract(sin(dot(uv*110.0,vec2(12.9,78.2)))*43758.5)-0.5)*0.014;
+  out_FragColor=vec4(clamp(col,0.0,1.0),1.0);
+}`
+};
+function setMode(mode){
+  if(!SC)return;
+  if(postFx){try{SC.postProcessStages.remove(postFx);}catch(ex){}postFx=null;}
+  document.getElementById('scanlines').style.opacity=(mode==='crt')?'1':'0';
+  if(mode!=='normal'&&SHADERS[mode]){
+    try{postFx=SC.postProcessStages.add(new Cesium.PostProcessStage({fragmentShader:SHADERS[mode]}));}catch(ex){}
+  }
+  curMode=mode;
+  document.querySelectorAll('.vm').forEach(b=>b.classList.toggle('on',b.dataset.m===mode));
+}
+document.querySelectorAll('.vm').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.m)));
+
+/* ═══ SATELLITES ══════════════════════════════ */
+async function loadSatellites(){
+  let txt=null;
+  const r=await fT('https://celestrak.org/pub/TLE/visual.txt',8000);
+  if(r)txt=await r.text();
+  if(!txt||txt.length<100)txt=TLE_FALLBACK;
+  satRecs=parseTLE(txt);
+  issRec=satRecs.find(r=>r.name.includes('ZARYA')||r.name.toUpperCase().includes('ISS'));
+  refreshSats();
+}
+function refreshSats(){
+  if(!satPts)return;
+  satPts.removeAll();
+  if(issOrb){try{V.entities.remove(issOrb);}catch(ex){}issOrb=null;}
+  if(!LAY.satellites&&!LAY.iss)return;
+  const now=new Date();let cnt=0;
+  satRecs.forEach(rec=>{
+    const isISS=rec.name.includes('ZARYA')||rec.name.toUpperCase().includes('ISS')||rec.name.includes('TIANGONG');
+    if(!LAY.satellites&&!isISS)return;
+    if(isISS&&!LAY.iss)return;
+    const p=satPos(rec.sr,now);if(!p)return;
+    satPts.add({
+      position:Cesium.Cartesian3.fromDegrees(p.lon,p.lat,p.alt),
+      color:isISS?Cesium.Color.fromCssColorString('#ff8800'):Cesium.Color.fromCssColorString('#00ffff'),
+      pixelSize:isISS?12:5,
+      outlineColor:Cesium.Color.fromCssColorString(isISS?'#ffd080':'#002244'),
+      outlineWidth:isISS?2:1,
+      scaleByDistance:new Cesium.NearFarScalar(1e5,2.0,3e7,0.45),
+    });
+    cnt++;
+  });
+  if(LAY.iss&&LAY.orbits&&issRec){
+    const pts=[];const now2=new Date();
+    for(let i=-46;i<=46;i++){const t=new Date(now2.getTime()+i*60000);const p=satPos(issRec.sr,t);if(p)pts.push(Cesium.Cartesian3.fromDegrees(p.lon,p.lat,p.alt));}
+    if(pts.length>3){try{issOrb=V.entities.add({polyline:{positions:pts,width:1.5,material:new Cesium.PolylineDashMaterialProperty({color:Cesium.Color.fromCssColorString('#ff8800').withAlpha(0.5),dashLength:18})}});}catch(ex){}}
+  }
+  document.getElementById('cSat').textContent=cnt;
+  document.getElementById('bSat').textContent='SAT:'+cnt;
+}
+async function loadStarlink(){
+  if(!slPts)return;
+  slPts.removeAll();if(!LAY.starlink)return;
+  let txt=null;
+  const r=await fT('https://celestrak.org/pub/TLE/starlink.txt',12000);
+  if(r)txt=await r.text();
+  if(!txt||txt.length<100){genSimStarlink();return;}
+  slRecs=parseTLE(txt).slice(0,500);
+  const now=new Date();
+  slRecs.forEach(rec=>{
+    const p=satPos(rec.sr,now);if(!p)return;
+    slPts.add({position:Cesium.Cartesian3.fromDegrees(p.lon,p.lat,p.alt),color:Cesium.Color.fromCssColorString('#8844ff'),pixelSize:3,outlineColor:Cesium.Color.fromCssColorString('#220033'),outlineWidth:1,scaleByDistance:new Cesium.NearFarScalar(1e5,1.5,3e7,0.3)});
+  });
+}
+function genSimStarlink(){
+  if(!slPts)return;
+  slPts.removeAll();if(!LAY.starlink)return;
+  const now=Date.now()/1000;
+  for(let i=0;i<350;i++){
+    const phase=(i/350)*Math.PI*2,plane=Math.floor(i/17)*Math.PI*2/21,inc=53*Math.PI/180,T=5765;
+    const t=(now/T+phase)*Math.PI*2;
+    const lat=Math.asin(Math.sin(inc)*Math.sin(t))*180/Math.PI;
+    const lon=((plane+Math.atan2(Math.cos(inc)*Math.sin(t),Math.cos(t)))*180/Math.PI+180)%360-180;
+    if(isNaN(lat)||isNaN(lon))continue;
+    slPts.add({position:Cesium.Cartesian3.fromDegrees(lon,lat,550000),color:Cesium.Color.fromCssColorString('#8844ff'),pixelSize:3,outlineColor:Cesium.Color.fromCssColorString('#220033'),outlineWidth:1,scaleByDistance:new Cesium.NearFarScalar(1e5,1.5,3e7,0.3)});
+  }
+}
+function genDebris(){
+  if(!debPts)return;
+  debPts.removeAll();if(!LAY.debris)return;
+  const now=Date.now()/1000;
+  for(let i=0;i<600;i++){
+    const inc=(20+Math.random()*140)*Math.PI/180,alt=200000+Math.random()*35e6;
+    const T=Math.sqrt(Math.pow((6371000+alt)/1000,3)/398600.4)*6.283;
+    const phase=Math.random()*Math.PI*2,raan=Math.random()*Math.PI*2;
+    const t=(now/T+phase)*Math.PI*2;
+    const lat=Math.asin(Math.sin(inc)*Math.sin(t))*180/Math.PI;
+    const lon=((raan+Math.atan2(Math.cos(inc)*Math.sin(t),Math.cos(t)))*180/Math.PI+180)%360-180;
+    if(isNaN(lat)||isNaN(lon))continue;
+    debPts.add({position:Cesium.Cartesian3.fromDegrees(lon,lat,alt),color:Cesium.Color.fromCssColorString('#887766').withAlpha(0.5),pixelSize:2,scaleByDistance:new Cesium.NearFarScalar(1e5,1.2,3e7,0.2)});
+  }
+}
+
+/* ═══ FLIGHTS ═════════════════════════════════ */
+async function loadFlights(){
+  E.flt.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.flt=[];
+  if(!LAY.flights)return;
+  let states=null;
+  try{const r=await fT('https://opensky-network.org/api/states/all',10000);if(r){const d=await r.json();states=(d.states||[]).slice(0,3000);}}catch(ex){}
+  if(states&&states.length>50)plotOpenSky(states); else simFlights(400);
+}
+function plotOpenSky(states){
+  let cnt=0;
+  states.forEach(s=>{
+    const lon=s[5],lat=s[6],alt=(s[7]||s[13]||7000),hdg=s[10]||0,cs=(s[1]||'').trim()||'????';
+    if(!lon||!lat||isNaN(lon)||isNaN(lat)||Math.abs(lat)>85)return;
+    const e=V.entities.add({
+      position:Cesium.Cartesian3.fromDegrees(lon,lat,Math.max(alt,200)),
+      billboard:{image:ARROW_YEL,width:10,height:10,rotation:-Cesium.Math.toRadians(hdg),color:Cesium.Color.fromCssColorString('#ffee00').withAlpha(0.88),scaleByDistance:new Cesium.NearFarScalar(5e3,1.8,2e7,0.28)},
+      label:LAY.labels?{text:cs,font:'9px Share Tech Mono,monospace',fillColor:Cesium.Color.fromCssColorString('#ffee00'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-14),distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,2e6)}:undefined,
+      description:`<div style="background:#000;color:#0f0;padding:10px;font-family:monospace"><b style="color:#ff0">✈ ${cs}</b><br>Alt:${Math.round(alt)}m Hdg:${Math.round(hdg)}°<br><i style="color:#0af">OpenSky Live</i></div>`
+    });
+    E.flt.push(e);cnt++;
+  });
+  document.getElementById('cFlt').textContent=cnt.toLocaleString();
+  document.getElementById('bFlt').textContent='FLT:'+cnt.toLocaleString();
+  document.getElementById('cSrc').textContent='LIVE';
+}
+function simFlights(n){
+  for(let i=0;i<n;i++){
+    const fr=AIRPORTS_FOR_FLIGHTS[Math.floor(Math.random()*AIRPORTS_FOR_FLIGHTS.length)];
+    const to=AIRPORTS_FOR_FLIGHTS[Math.floor(Math.random()*AIRPORTS_FOR_FLIGHTS.length)];
+    const p=Math.random();
+    const lat=Math.max(-84,Math.min(84,fr.la+(to.la-fr.la)*p+(Math.random()-.5)*4));
+    const lon=Math.max(-179,Math.min(179,fr.lo+(to.lo-fr.lo)*p+(Math.random()-.5)*4));
+    const alt=4000+Math.random()*9000;
+    const al=AIRLINES[Math.floor(Math.random()*AIRLINES.length)];
+    const fn=Math.floor(100+Math.random()*9900);
+    const hdg=Math.atan2(to.lo-fr.lo,to.la-fr.la)*180/Math.PI;
+    const e=V.entities.add({
+      position:Cesium.Cartesian3.fromDegrees(lon,lat,alt),
+      billboard:{image:ARROW_YEL,width:10,height:10,rotation:-Cesium.Math.toRadians(hdg),color:Cesium.Color.fromCssColorString('#ffee00').withAlpha(0.85),scaleByDistance:new Cesium.NearFarScalar(5e3,1.5,2e7,0.25)},
+      label:LAY.labels?{text:`${al}${fn}`,font:'9px Share Tech Mono,monospace',fillColor:Cesium.Color.fromCssColorString('#ffee00'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-14),distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,2e6)}:undefined,
+      description:`<div style="background:#000;color:#0f0;padding:10px;font-family:monospace"><b style="color:#ff0">✈ ${al}${fn}</b><br>${fr.c} → ${to.c}<br>Alt:${Math.round(alt)}m</div>`
+    });
+    E.flt.push(e);
+  }
+  document.getElementById('cFlt').textContent=n;
+  document.getElementById('bFlt').textContent='FLT:'+n;
+  document.getElementById('cSrc').textContent='SIM';
+}
+
+/* ═══ MILITARY ════════════════════════════════ */
+function renderMilitary(){
+  E.mil.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.mil=[];
+  if(!LAY.military){document.getElementById('cMil').textContent=0;return;}
+  MIL_FLIGHTS.forEach((f,i)=>{
+    const e=V.entities.add({
+      position:Cesium.Cartesian3.fromDegrees(f.lo,f.la,f.alt),
+      billboard:{image:ARROW_RED,width:13,height:13,rotation:-Cesium.Math.toRadians(f.hdg),color:Cesium.Color.fromCssColorString('#ff3300'),scaleByDistance:new Cesium.NearFarScalar(5e3,2.0,2e7,0.4)},
+      label:LAY.labels?{text:`${f.nat} ${f.id}`,font:'9px Share Tech Mono,monospace',fillColor:Cesium.Color.fromCssColorString('#ff6644'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-18),distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,6e6)}:undefined,
+      description:`<div style="background:#000;color:#f55;padding:10px;font-family:monospace"><b style="color:#f33">💥 ${f.id}</b><br>${f.nat} · Alt:${f.alt}m</div>`
+    });
+    E.mil.push(e);
+  });
+  document.getElementById('cMil').textContent=MIL_FLIGHTS.length;
+}
+function animateMilitary(){
+  if(!LAY.military||!V)return;
+  MIL_FLIGHTS.forEach((f,i)=>{
+    f.lo=((f.lo+f.vx+180)%360)-180;
+    f.la=Math.max(-82,Math.min(82,f.la+f.vy*0.3));
+    if(Math.abs(f.la)>80)f.vy*=-1;
+    f.hdg=Math.atan2(f.vx,f.vy)*180/Math.PI;
+    if(E.mil[i]){
+      try{
+        E.mil[i].position=Cesium.Cartesian3.fromDegrees(f.lo,f.la,f.alt);
+        E.mil[i].billboard.rotation=-Cesium.Math.toRadians(f.hdg);
+      }catch(ex){}
+    }
+  });
+}
+
+/* ═══ SHIPS ═══════════════════════════════════ */
+const SHIP_SVG=`data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%2300ffff' d='M10 1L3 8h2v8h10V8h2L10 1z'/%3E%3C/svg%3E`;
+const NAVAL_SVG=`data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%230066ff' d='M10 1L3 8h2v8h10V8h2L10 1z'/%3E%3C/svg%3E`;
+const SHIP_TYPES=['CONTAINER','TANKER','CARGO','BULK','LNG','DESTROYER','FRIGATE'];
+function generateShips(n){
+  E.ship.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.ship=[];
+  if(!LAY.ships){document.getElementById('cShip').textContent=0;return;}
+  for(let i=0;i<n;i++){
+    const l=SHIP_LANES[i%SHIP_LANES.length];
+    const la=Math.max(-85,Math.min(85,l.la+(Math.random()-.5)*l.sp));
+    const lo=l.lo+(Math.random()-.5)*l.sp;
+    const t=SHIP_TYPES[Math.floor(Math.random()*SHIP_TYPES.length)];
+    const isMil=t==='DESTROYER'||t==='FRIGATE';
+    const e=V.entities.add({
+      position:Cesium.Cartesian3.fromDegrees(lo,la,0),
+      billboard:{image:isMil?NAVAL_SVG:SHIP_SVG,width:12,height:12,color:isMil?Cesium.Color.fromCssColorString('#0066ff'):Cesium.Color.CYAN,rotation:Math.random()*6.28},
+      label:LAY.labels?{text:`${t.slice(0,3)}-${String(i+1).padStart(3,'0')}`,font:'9px monospace',fillColor:isMil?Cesium.Color.fromCssColorString('#0088ff'):Cesium.Color.CYAN,outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,1.5e6)}:undefined,
+    });
+    E.ship.push(e);
+  }
+  document.getElementById('cShip').textContent=n;
+}
+
+/* ═══ EARTHQUAKES ✅ FIXED SIZE ═══════════════ */
+async function loadEarthquakes(){
+  E.eq.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.eq=[];
+  if(!LAY.seismic){document.getElementById('cEQ').textContent=0;document.getElementById('bEQ').textContent='EQ:0';return;}
+  let features=[];
+  try{const r=await fT('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson',8000);if(r){const d=await r.json();features=d.features||[];}}catch(ex){}
+  let cnt=0;
+  features.forEach(f=>{
+    const[lon,lat]=f.geometry.coordinates;
+    const mag=f.properties.mag||0;
+    if(!lon||!lat||mag<1.5)return;
+    // ✅ FIXED formula: proper km radius, capped at 180km visual max
+    const r=Math.min(6000*Math.pow(1.8,mag-1),180000);
+    const col=mag>=6?'#ff0000':mag>=4?'#ff6600':'#ffaa00';
+    const a=Math.min(0.05+mag*0.04,0.45);
+    E.eq.push(V.entities.add({
+      position:Cesium.Cartesian3.fromDegrees(lon,lat),
+      ellipse:{semiMajorAxis:r,semiMinorAxis:r,material:Cesium.Color.fromCssColorString(col).withAlpha(a),outlineColor:Cesium.Color.fromCssColorString(col).withAlpha(0.88),outline:true,outlineWidth:1.5,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      point:{pixelSize:mag>=5?8:mag>=3?5:3,color:Cesium.Color.fromCssColorString(col),outlineColor:Cesium.Color.BLACK,outlineWidth:1,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:LAY.labels?{text:`M${mag.toFixed(1)}`,font:'9px monospace',fillColor:Cesium.Color.fromCssColorString(col),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-12),distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,4e6)}:undefined,
+      description:`<div style="background:#000;color:#fa0;padding:10px;font-family:monospace"><b style="color:#f60">🌋 M${mag.toFixed(1)}</b><br>${f.properties.place||'Unknown'}<br>${new Date(f.properties.time).toUTCString()}</div>`
+    }));
+    cnt++;
+  });
+  document.getElementById('cEQ').textContent=cnt;
+  document.getElementById('bEQ').textContent='EQ:'+cnt;
+}
+
+/* ═══ WILDFIRES ═══════════════════════════════ */
+async function loadWildfires(){
+  E.fire.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.fire=[];
+  if(!LAY.wildfires){document.getElementById('cFire').textContent=0;document.getElementById('bFire').textContent='FIRE:0';return;}
+  const hotspots=[[40,-120,8],[37,-119,6],[-15,-55,20],[0,20,15],[-25,30,10],[55,80,12],[35,25,8],[10,10,15],[-12,130,8],[45,135,6],[35,-5,6],[60,90,10],[-33,26,6],[20,45,8]];
+  let cnt=0;
+  hotspots.forEach(h=>{
+    for(let i=0;i<60;i++){
+      const la=h[0]+(Math.random()-.5)*h[2],lo=h[1]+(Math.random()-.5)*h[2];
+      const intensity=Math.random(),col=intensity>0.7?'#ff2200':intensity>0.4?'#ff6600':'#ffaa00';
+      E.fire.push(V.entities.add({
+        position:Cesium.Cartesian3.fromDegrees(lo,la,0),
+        point:{pixelSize:3+intensity*4,color:Cesium.Color.fromCssColorString(col).withAlpha(0.85),outlineColor:Cesium.Color.fromCssColorString('#ff4400').withAlpha(0.35),outlineWidth:1,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      }));
+      cnt++;
+    }
+  });
+  document.getElementById('cFire').textContent=cnt;
+  document.getElementById('bFire').textContent='FIRE:'+cnt;
+}
+
+/* ═══ HURRICANES ══════════════════════════════ */
+async function loadHurricanes(){
+  E.hurr.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.hurr=[];
+  if(!LAY.hurricanes){document.getElementById('cHurr').textContent=0;return;}
+  let storms=[];
+  try{const r=await fT('https://www.nhc.noaa.gov/CurrentStorms.json',6000);if(r){const d=await r.json();storms=d.activeStorms||[];}}catch(ex){}
+  let cnt=storms.length;
+  if(cnt===0){
+    // Simulated seasonal storms
+    const month=new Date().getMonth();
+    if(month>=5&&month<=10){storms=[{name:'DEMO-01',classification:'TS',lat:'15.5',lon:'-65.0',intensity:'65'},{name:'DEMO-02',classification:'TD',lat:'10.0',lon:'-87.5',intensity:'40'}];}
+    cnt=storms.length;
+  }
+  storms.forEach(s=>{
+    const la=parseFloat(s.lat||s.latitudeF||0),lo=parseFloat(s.lon||s.longitudeF||0);
+    if(!la&&!lo)return;
+    E.hurr.push(V.entities.add({
+      position:Cesium.Cartesian3.fromDegrees(lo,la,0),
+      ellipse:{semiMajorAxis:320000,semiMinorAxis:320000,material:Cesium.Color.fromCssColorString('#ff00ff').withAlpha(0.07),outlineColor:Cesium.Color.fromCssColorString('#ff00ff').withAlpha(0.7),outline:true,outlineWidth:2,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`🌀 ${s.name||'CYCLONE'}\n${s.classification||'TS'}`,font:'10px Share Tech Mono,monospace',fillColor:Cesium.Color.fromCssColorString('#ff00ff'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE},
+    }));
+  });
+  document.getElementById('cHurr').textContent=cnt;
+}
+
+/* ═══ VOLCANOES ═══════════════════════════════ */
+function renderVolcanoes(){
+  E.vol.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.vol=[];
+  if(!LAY.volcanoes){document.getElementById('cVol').textContent=0;return;}
+  VOLCANOES.forEach(v=>{
+    const col=v.s==='erupting'?'#ff2200':v.s==='alert'?'#ff8800':'#ffaa00';
+    E.vol.push(V.entities.add({
+      position:Cesium.Cartesian3.fromDegrees(v.lo,v.la,0),
+      point:{pixelSize:v.s==='erupting'?10:7,color:Cesium.Color.fromCssColorString(col),outlineColor:Cesium.Color.fromCssColorString('#550000'),outlineWidth:2,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`🌋 ${v.n}`,font:'9px Share Tech Mono,monospace',fillColor:Cesium.Color.fromCssColorString(col),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-14),distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,5e6)},
+      description:`<div style="background:#000;color:#fa0;padding:10px;font-family:monospace"><b>🌋 ${v.n}</b><br>Status: ${v.s.toUpperCase()}</div>`
+    }));
+  });
+  document.getElementById('cVol').textContent=VOLCANOES.length;
+}
+
+/* ═══ JAM ZONES ═══════════════════════════════ */
+function renderJamming(){
+  E.jam.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.jam=[];
+  if(!LAY.jamming)return;
+  JAM_ZONES.forEach(z=>{
+    E.jam.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(z.lo,z.la),
+      ellipse:{semiMajorAxis:z.r,semiMinorAxis:z.r*0.72,material:Cesium.Color.fromCssColorString('#ff0066').withAlpha(0.07),outlineColor:Cesium.Color.fromCssColorString('#ff0066').withAlpha(0.88),outline:true,outlineWidth:2,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`⚠ GPS DENIED\n${z.n}`,font:'9px Share Tech Mono,monospace',fillColor:Cesium.Color.fromCssColorString('#ff0066'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,7e6)}}));
+    E.jam.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(z.lo,z.la),
+      ellipse:{semiMajorAxis:z.r*1.45,semiMinorAxis:z.r*1.05,material:Cesium.Color.fromCssColorString('#ff0066').withAlpha(0.02),outlineColor:Cesium.Color.fromCssColorString('#ff0066').withAlpha(0.18),outline:true,outlineWidth:1,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND}}));
+  });
+  document.getElementById('cJam').textContent=JAM_ZONES.length;
+}
+
+/* ═══ INTELLIGENCE LAYERS ════════════════════ */
+function renderConflict(){
+  E.con.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.con=[];
+  if(!LAY.conflict)return;
+  CONFLICT_ZONES.forEach(z=>{
+    E.con.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(z.lo,z.la),
+      ellipse:{semiMajorAxis:z.r,semiMinorAxis:z.r*0.85,material:Cesium.Color.fromCssColorString(z.c).withAlpha(0.09),outlineColor:Cesium.Color.fromCssColorString(z.c).withAlpha(0.85),outline:true,outlineWidth:2,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`⚔ ${z.n}`,font:'9px Share Tech Mono,monospace',fillColor:Cesium.Color.fromCssColorString(z.c),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,8e6)}}));
+  });
+}
+function renderBases(){
+  E.base.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.base=[];
+  if(!LAY.bases){document.getElementById('cBase').textContent=0;return;}
+  MIL_BASES.forEach(b=>{
+    E.base.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(b.lo,b.la,0),
+      point:{pixelSize:8,color:Cesium.Color.fromCssColorString('#ff3300'),outlineColor:Cesium.Color.fromCssColorString('#550000'),outlineWidth:2,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`${b.c} ${b.n}`,font:'9px Share Tech Mono,monospace',fillColor:Cesium.Color.fromCssColorString('#ff3300'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-14),distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,4e6)},
+      description:`<div style="background:#000;color:#f33;padding:10px;font-family:monospace"><b>${b.n}</b><br>${b.c}</div>`}));
+  });
+  document.getElementById('cBase').textContent=MIL_BASES.length;
+}
+function renderNuclear(){
+  E.nuc.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.nuc=[];
+  if(!LAY.nuclear){document.getElementById('cNuc').textContent=0;return;}
+  NUCLEAR_SITES.forEach(s=>{
+    const col=s.t==='weapons'?'#ff0000':s.t==='enrichment'?'#ffff00':'#aaff00';
+    E.nuc.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(s.lo,s.la,0),
+      point:{pixelSize:s.t==='weapons'?10:7,color:Cesium.Color.fromCssColorString(col),outlineColor:Cesium.Color.BLACK,outlineWidth:2,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`☢ ${s.n}`,font:'9px Share Tech Mono,monospace',fillColor:Cesium.Color.fromCssColorString(col),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-14),distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,4e6)},
+      description:`<div style="background:#000;color:#ff0;padding:10px;font-family:monospace"><b>☢ ${s.n}</b><br>${s.c} — ${s.t.toUpperCase()}</div>`}));
+  });
+  document.getElementById('cNuc').textContent=NUCLEAR_SITES.length;
+}
+function renderCyber(){
+  E.cyber.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.cyber=[];
+  if(!LAY.cyber)return;
+  [{la:39.9,lo:116.4,n:'CN APT'},{la:55.7,lo:37.6,n:'RU GRU'},{la:37.5,lo:127.0,n:'NK Lazarus'},{la:38.9,lo:-77.0,n:'US NSA'},{la:51.5,lo:-0.1,n:'UK GCHQ'},{la:30.5,lo:50.0,n:'IR MOIS'},{la:32.0,lo:34.8,n:'IL Unit 8200'}].forEach(s=>{
+    E.cyber.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(s.lo,s.la,0),
+      ellipse:{semiMajorAxis:80000,semiMinorAxis:80000,material:Cesium.Color.fromCssColorString('#00ff44').withAlpha(0.06),outlineColor:Cesium.Color.fromCssColorString('#00ff44').withAlpha(0.65),outline:true,outlineWidth:1,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`⚡ ${s.n}`,font:'9px monospace',fillColor:Cesium.Color.fromCssColorString('#00ff44'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,5e6)}}));
+  });
+}
+function renderNoFly(){
+  E.nofly.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.nofly=[];
+  if(!LAY.nofly)return;
+  [{n:'Ukraine Conflict',la:49.0,lo:32.0,r:450000},{n:'Libya',la:27.0,lo:14.0,r:280000},{n:'Iran (restricted)',la:32.0,lo:53.0,r:300000},{n:'N.Korea ADIZ',la:39.5,lo:127.5,r:350000},{n:'Gaza/Israel',la:31.5,lo:34.5,r:60000},{n:'Syria',la:35.0,lo:38.0,r:280000},{n:'Belarus',la:53.9,lo:27.6,r:180000}].forEach(z=>{
+    E.nofly.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(z.lo,z.la),
+      ellipse:{semiMajorAxis:z.r,semiMinorAxis:z.r*0.82,material:Cesium.Color.fromCssColorString('#ff0000').withAlpha(0.07),outlineColor:Cesium.Color.fromCssColorString('#ff0000').withAlpha(0.78),outline:true,outlineWidth:2,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`🚫 NO-FLY\n${z.n}`,font:'9px monospace',fillColor:Cesium.Color.fromCssColorString('#ff0000'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,7e6)}}));
+  });
+}
+function renderCables(){
+  E.cable.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.cable=[];
+  if(!LAY.cables)return;
+  SUBMARINE_CABLES.forEach(c=>{
+    const pts=c.pts.map(p=>Cesium.Cartesian3.fromDegrees(p[1],p[0],0));
+    E.cable.push(V.entities.add({polyline:{positions:pts,width:1.5,material:Cesium.Color.fromCssColorString('#00aa88').withAlpha(0.6),clampToGround:true}}));
+  });
+}
+function renderLaunches(){
+  E.launch.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.launch=[];
+  if(!LAY.launches)return;
+  LAUNCH_SITES.forEach(s=>{
+    E.launch.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(s.lo,s.la,0),
+      point:{pixelSize:8,color:Cesium.Color.fromCssColorString('#00aaff'),outlineColor:Cesium.Color.fromCssColorString('#003366'),outlineWidth:2,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`🚀 ${s.n}`,font:'9px monospace',fillColor:Cesium.Color.fromCssColorString('#00aaff'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-14),distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,4e6)}}));
+  });
+}
+function renderPiracy(){
+  E.piracy.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.piracy=[];
+  if(!LAY.piracy)return;
+  [{n:'Gulf of Aden',la:12.5,lo:48.0,r:300000},{n:'Somalia',la:7.0,lo:50.0,r:380000},{n:'Malacca',la:3.0,lo:102.0,r:140000},{n:'Gulf of Guinea',la:3.0,lo:4.0,r:350000},{n:'Sulu Sea',la:6.0,lo:122.0,r:200000},{n:'Bangladesh Coast',la:21.5,lo:90.5,r:110000}].forEach(z=>{
+    E.piracy.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(z.lo,z.la),
+      ellipse:{semiMajorAxis:z.r,semiMinorAxis:z.r*0.72,material:Cesium.Color.fromCssColorString('#ff3300').withAlpha(0.07),outlineColor:Cesium.Color.fromCssColorString('#ff3300').withAlpha(0.68),outline:true,outlineWidth:1.5,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`☠ PIRACY\n${z.n}`,font:'9px monospace',fillColor:Cesium.Color.fromCssColorString('#ff5500'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,6e6)}}));
+  });
+}
+function renderAirports(){
+  E.apt.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.apt=[];
+  if(!LAY.airports)return;
+  AIRPORTS.forEach(a=>{
+    E.apt.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(a.lo,a.la,0),
+      point:{pixelSize:6,color:Cesium.Color.fromCssColorString('#aaffee'),outlineColor:Cesium.Color.fromCssColorString('#003322'),outlineWidth:1,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`✈ ${a.n}`,font:'9px monospace',fillColor:Cesium.Color.fromCssColorString('#aaffee'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-12),distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,2e6)}}));
+  });
+}
+function renderRefugees(){
+  E.refugee.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.refugee=[];
+  if(!LAY.refugees)return;
+  REFUGEE_CAMPS.forEach(c=>{
+    const r=Math.min(5000+c.pop/12,100000);
+    E.refugee.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(c.lo,c.la),
+      ellipse:{semiMajorAxis:r,semiMinorAxis:r,material:Cesium.Color.fromCssColorString('#ffaa44').withAlpha(0.12),outlineColor:Cesium.Color.fromCssColorString('#ffaa44').withAlpha(0.8),outline:true,outlineWidth:1.5,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`🏕 ${c.n}\n${(c.pop/1000).toFixed(0)}k`,font:'9px monospace',fillColor:Cesium.Color.fromCssColorString('#ffaa44'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,4e6)}}));
+  });
+}
+function renderCCTVmarkers(){
+  E.cctv.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.cctv=[];
+  if(!LAY.cctv)return;
+  CCTV_FEEDS.forEach(c=>{
+    E.cctv.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(c.lo,c.la,0),
+      point:{pixelSize:7,color:Cesium.Color.fromCssColorString('#cccccc'),outlineColor:Cesium.Color.fromCssColorString('#444444'),outlineWidth:1,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`📷 ${c.n}`,font:'9px monospace',fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-12),distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,2e6)},
+      description:`<div style="background:#000;color:#fff;padding:10px;font-family:monospace"><b>📷 ${c.n}</b><br><a href="${c.url}" target="_blank" style="color:#0ff">OPEN LIVE FEED ↗</a></div>`}));
+  });
+}
+function renderTraffic(n){
+  E.traf.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.traf=[];
+  if(!LAY.traffic)return;
+  const cities=[[40.71,-74.00],[34.05,-118.24],[51.51,-0.13],[48.86,2.35],[35.69,139.69],[-33.87,151.21],[28.61,77.23],[25.20,55.27],[55.75,37.61],[31.23,121.47],[19.07,72.87],[33.34,44.40],[1.35,103.82],[41.01,28.95],[30.04,31.24],[52.52,13.40],[39.91,116.39],[24.69,46.72],[-22.91,-43.17],[43.65,-79.38]];
+  for(let i=0;i<n;i++){
+    const c=cities[i%cities.length];
+    E.traf.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(c[1]+(Math.random()-.5)*1.5,c[0]+(Math.random()-.5)*1.5,30),
+      point:{pixelSize:2+Math.random()*2.5,color:Cesium.Color.ORANGE.withAlpha(0.65),heightReference:Cesium.HeightReference.CLAMP_TO_GROUND}}));
+  }
+}
+function renderAurora(){
+  E.aurora.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.aurora=[];
+  if(!LAY.aurora)return;
+  [68,71,74].forEach(lat=>{
+    const pts=[],pts2=[];
+    for(let lo=-180;lo<=180;lo+=4){pts.push(Cesium.Cartesian3.fromDegrees(lo,lat,0));pts2.push(Cesium.Cartesian3.fromDegrees(lo,-lat,0));}
+    E.aurora.push(V.entities.add({polyline:{positions:pts,width:2.5,material:Cesium.Color.fromCssColorString('#00ff99').withAlpha(0.45)}}));
+    E.aurora.push(V.entities.add({polyline:{positions:pts2,width:2.5,material:Cesium.Color.fromCssColorString('#00ff99').withAlpha(0.45)}}));
+  });
+}
+function renderNaval(){
+  E.naval.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.naval=[];
+  if(!LAY.naval)return;
+  [{n:'USN CSG-11',la:22.0,lo:115.0},{n:'USN CSG-8',la:37.0,lo:-75.0},{n:'RUS TF-17',la:44.0,lo:33.0},{n:'PLA PLAN',la:10.0,lo:114.0},{n:'NATO SNMG2',la:40.0,lo:28.0},{n:'RFN MedSqn',la:35.0,lo:18.0}].forEach(s=>{
+    E.naval.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(s.lo,s.la,0),
+      point:{pixelSize:10,color:Cesium.Color.fromCssColorString('#0044ff'),outlineColor:Cesium.Color.fromCssColorString('#001133'),outlineWidth:2,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`⚓ ${s.n}`,font:'9px monospace',fillColor:Cesium.Color.fromCssColorString('#4488ff'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-14),distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,5e6)}}));
+  });
+}
+function renderTsunami(){
+  E.tsun.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.tsun=[];
+  if(!LAY.tsunami)return;
+  [{n:'Pacific Ring',la:0,lo:180,r:8000000},{n:'Indian Ocean',la:-10,lo:80,r:4000000},{n:'Caribbean',la:15,lo:-75,r:2000000}].forEach(z=>{
+    E.tsun.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(z.lo,z.la),
+      ellipse:{semiMajorAxis:z.r,semiMinorAxis:z.r*0.6,material:Cesium.Color.fromCssColorString('#0088ff').withAlpha(0.04),outlineColor:Cesium.Color.fromCssColorString('#0088ff').withAlpha(0.5),outline:true,outlineWidth:1.5,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND},
+      label:{text:`🌊 TSUNAMI RISK\n${z.n}`,font:'9px monospace',fillColor:Cesium.Color.fromCssColorString('#0088ff'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,1e7)}}));
+  });
+}
+function renderPipelines(){
+  E.pipe.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.pipe=[];
+  if(!LAY.pipelines)return;
+  [[{la:59.9,lo:28.7},{la:55.2,lo:22.0},{la:54.3,lo:18.4},{la:54.5,lo:12.3}],[{la:41.0,lo:28.5},{la:41.5,lo:26.5},{la:42.0,lo:21.5},{la:41.0,lo:21.0},{la:44.5,lo:15.5},{la:46.1,lo:14.5}],[{la:37.0,lo:36.0},{la:38.5,lo:27.0},{la:41.0,lo:28.5}]].forEach(coords=>{
+    const pts=coords.map(c=>Cesium.Cartesian3.fromDegrees(c.lo,c.la,0));
+    E.pipe.push(V.entities.add({polyline:{positions:pts,width:2,material:Cesium.Color.fromCssColorString('#996633').withAlpha(0.65),clampToGround:true}}));
+  });
+}
+
+/* ═══ LIGHTNING ════════════════════════════════ */
+function spawnLightning(){
+  if(!LAY.lightning||!V)return;
+  const hotspots=[[4,-73,20],[14,18,20],[7,9,15],[-16,28,15],[23,89,15],[35,105,12],[25,-80,10],[35,135,10]];
+  for(let i=0;i<8;i++){
+    const h=hotspots[Math.floor(Math.random()*hotspots.length)];
+    const la=h[0]+(Math.random()-.5)*h[2],lo=h[1]+(Math.random()-.5)*h[2];
+    let ent;
+    try{
+      ent=V.entities.add({position:Cesium.Cartesian3.fromDegrees(lo,la,0),
+        point:{pixelSize:5,color:Cesium.Color.fromCssColorString('#ffff00').withAlpha(0.95),outlineColor:Cesium.Color.WHITE,outlineWidth:1,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND}});
+      setTimeout(()=>{try{V.entities.remove(ent);}catch(ex){}},300+Math.random()*700);
+    }catch(ex){}
+  }
+}
+
+/* ═══ CAMERA CONTROLS ═════════════════════════ */
+function flyTo(la,lo,alt){
+  if(!V)return;
+  V.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(lo,la,alt),orientation:{heading:0,pitch:Cesium.Math.toRadians(-42),roll:0},duration:2.2,easingFunction:Cesium.EasingFunction.SINUSOIDAL_IN_OUT});
+}
+function trackISS(){
+  if(!issRec||!V)return;
+  const p=satPos(issRec.sr,new Date());if(!p)return;
+  V.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(p.lon,p.lat,2800000),orientation:{heading:0,pitch:Cesium.Math.toRadians(-55),roll:0},duration:2.2});
+}
+function setScene(m){
+  if(!V)return;
+  try{
+    if(m==='3D')V.scene.morphTo3D(1.4);
+    if(m==='2D')V.scene.morphTo2D(1.4);
+    if(m==='CV')V.scene.morphToColumbusView(1.4);
+  }catch(ex){}
+  document.querySelectorAll('.sb3').forEach(b=>b.classList.remove('on'));
+  document.getElementById('s'+m).classList.add('on');
+}
+document.querySelectorAll('.cbtn').forEach(b=>b.addEventListener('click',()=>{
+  if(b.dataset.iss){trackISS();return;}
+  flyTo(+b.dataset.la,+b.dataset.lo,+b.dataset.al);
+}));
+
+/* ═══ SEARCH — NOMINATIM ══════════════════════ */
+function wireSearch(){
+  const inp=document.getElementById('si');
+  const res=document.getElementById('srchRes');
+  inp.addEventListener('input',()=>{
+    clearTimeout(srchTimer);
+    const q=inp.value.trim();
+    if(q.length<2){res.style.display='none';return;}
+    srchTimer=setTimeout(()=>doSearch(q),380);
+  });
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){res.style.display='none';inp.blur();}
+    if(e.key==='Enter'){e.preventDefault();const first=res.querySelector('.sr');if(first)first.click();}
+  });
+  document.addEventListener('click',ev=>{if(!ev.target.closest('#srchWrap'))res.style.display='none';});
+}
+async function doSearch(q){
+  const res=document.getElementById('srchRes');
+  res.innerHTML='<div class="sr" style="color:#444">SEARCHING...</div>';
+  res.style.display='block';
+  // Direct coords
+  if(/^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(q)){
+    const[la,lo]=q.split(',').map(Number);
+    res.innerHTML=`<div class="sr">📍 ${la.toFixed(4)}, ${lo.toFixed(4)}</div>`;
+    res.querySelector('.sr').addEventListener('click',()=>{flyTo(la,lo,200000);res.style.display='none';document.getElementById('si').value='';});
+    return;
+  }
+  try{
+    const r=await fT(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&accept-language=en&addressdetails=1`,7000);
+    if(!r){res.innerHTML='<div class="sr" style="color:#444">NO RESULTS</div>';return;}
+    const data=await r.json();
+    if(!data||!data.length){res.innerHTML='<div class="sr" style="color:#444">NOT FOUND: '+q+'</div>';return;}
+    res.innerHTML='';
+    data.forEach(item=>{
+      const div=document.createElement('div');div.className='sr';
+      const t=item.type||item.class||'';
+      const ic=t==='country'?'🌍':t==='city'||t==='town'?'🏙':t==='village'?'🏘':t==='airport'?'✈':t==='military'?'⚔':'📍';
+      div.textContent=`${ic} ${item.display_name.split(',').slice(0,3).join(', ')}`;
+      div.addEventListener('click',()=>{
+        const la=parseFloat(item.lat),lo=parseFloat(item.lon);
+        const bb=item.boundingbox;
+        let alt=300000;
+        if(bb){const d=Math.max(Math.abs(bb[1]-bb[0]),Math.abs(bb[3]-bb[2]));alt=Math.max(d*111000*6,8000);}
+        flyTo(la,lo,alt);
+        document.getElementById('si').value='';res.style.display='none';
+      });
+      res.appendChild(div);
+    });
+  }catch(ex){res.innerHTML='<div class="sr" style="color:#444">SEARCH ERROR</div>';}
+}
+
+/* ═══ TIMELINE ════════════════════════════════ */
+function wireTimeline(){
+  const sl=document.getElementById('timeSl'),td=document.getElementById('tpT');
+  const tick=()=>{timeOff=+sl.value;const t=new Date(Date.now()+timeOff*3600000);td.textContent=t.toISOString().replace('T',' ').slice(0,19)+' UTC';};
+  tick();
+  sl.addEventListener('input',()=>{tick();if(V&&Math.abs(timeOff)>0)refreshSats();});
+}
+
+/* ═══ HUD TICK ════════════════════════════════ */
+function hudTick(){
+  try{
+    document.getElementById('utcClock').textContent=new Date().toISOString().replace('T',' ').slice(0,19)+' UTC';
+    if(V){const c=Cesium.Cartographic.fromCartesian(V.camera.position);if(c)document.getElementById('cAlt').textContent=(c.height/1000).toFixed(1);}
+  }catch(ex){}
+}
+
+/* ═══ CCTV PANEL ══════════════════════════════ */
+function buildCCTV(){
+  const grid=document.getElementById('cctvGrid');
+  grid.innerHTML='';
+  CCTV_FEEDS.forEach(c=>{
+    const cell=document.createElement('div');cell.className='cctvCell';
+    if(c.img){
+      const img=document.createElement('img');img.className='cctvImg';
+      img.src=c.img;img.alt=c.n;
+      img.onerror=()=>{img.style.display='none';addPh(cell,c.n);};
+      cell.appendChild(img);
+    }else{addPh(cell,c.n);}
+    const lbl=document.createElement('div');lbl.className='cctvLbl';lbl.textContent=c.n;
+    cell.appendChild(lbl);
+    cell.addEventListener('click',()=>window.open(c.url,'_blank'));
+    grid.appendChild(cell);
+  });
+}
+function addPh(cell,n){
+  const ph=document.createElement('div');ph.className='cctvPh';
+  ph.innerHTML=`<span>📷</span><span>${n}</span>`;cell.appendChild(ph);
+}
+function openCCTV(){document.getElementById('cctvModal').classList.add('show');}
+function closeCCTV(){document.getElementById('cctvModal').classList.remove('show');}
+document.getElementById('cctvModal').addEventListener('click',e=>{if(e.target===document.getElementById('cctvModal'))closeCCTV();});
+
+/* ═══ COLLAPSIBLE SECTIONS ════════════════════ */
+function toggleSec(hdr){
+  const body=hdr.nextElementSibling;
+  const arrow=hdr.querySelector('.sh-a');
+  const isOpen=body.classList.contains('open');
+  body.classList.toggle('open',!isOpen);
+  if(arrow)arrow.classList.toggle('open',!isOpen);
+}
+
+/* ═══ LAYER TOGGLE ════════════════════════════ */
+window.tog=function(key,row){
+  const cb=row.querySelector('input[type=checkbox]');if(!cb)return;
+  cb.checked=!cb.checked;LAY[key]=cb.checked;
+  switch(key){
+    case 'satellites':case 'iss':case 'orbits': refreshSats(); break;
+    case 'starlink':  LAY.starlink?loadStarlink():slPts.removeAll(); break;
+    case 'debris':    LAY.debris?genDebris():debPts.removeAll(); break;
+    case 'flights':   LAY.flights?loadFlights():(E.flt.forEach(e=>{try{V.entities.remove(e);}catch(ex){}}),E.flt=[]); break;
+    case 'military':  renderMilitary(); break;
+    case 'ships':     generateShips(240); break;
+    case 'piracy':    renderPiracy(); break;
+    case 'cables':    renderCables(); break;
+    case 'naval':     renderNaval(); break;
+    case 'nofly':     renderNoFly(); break;
+    case 'airports':  renderAirports(); break;
+    case 'seismic':   loadEarthquakes(); break;
+    case 'wildfires': loadWildfires(); break;
+    case 'hurricanes':loadHurricanes(); break;
+    case 'volcanoes': renderVolcanoes(); break;
+    case 'jamming':   renderJamming(); break;
+    case 'tsunami':   renderTsunami(); break;
+    case 'conflict':  renderConflict(); break;
+    case 'bases':     renderBases(); break;
+    case 'nuclear':   renderNuclear(); break;
+    case 'cyber':     renderCyber(); break;
+    case 'drones':    // drone ops simulation
+      E.drone.forEach(e=>{try{V.entities.remove(e);}catch(ex){}});E.drone=[];
+      if(LAY.drones)[{la:49.0,lo:33.0,n:'UA MQ-9'},{la:32.0,lo:35.5,n:'IL Heron'},{la:22.5,lo:114.5,n:'PLA Wing Loong'},{la:14.0,lo:45.5,n:'US MQ-1 Yemen'}].forEach(d=>{E.drone.push(V.entities.add({position:Cesium.Cartesian3.fromDegrees(d.lo,d.la,5000),point:{pixelSize:6,color:Cesium.Color.fromCssColorString('#888888'),outlineColor:Cesium.Color.WHITE,outlineWidth:1},label:{text:`⬡ ${d.n}`,font:'9px monospace',fillColor:Cesium.Color.fromCssColorString('#aaaaaa'),outlineColor:Cesium.Color.BLACK,outlineWidth:2,style:Cesium.LabelStyle.FILL_AND_OUTLINE,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,4e6)}}));});
+      break;
+    case 'launches':  renderLaunches(); break;
+    case 'pipelines': renderPipelines(); break;
+    case 'aurora':    renderAurora(); break;
+    case 'traffic':   LAY.traffic?renderTraffic(600):(E.traf.forEach(e=>{try{V.entities.remove(e);}catch(ex){}}),E.traf=[]); break;
+    case 'cctv':      renderCCTVmarkers(); break;
+    case 'refugees':  renderRefugees(); break;
+    case 'lightning':
+      if(LAY.lightning){ligInt=setInterval(spawnLightning,1200);}
+      else{clearInterval(ligInt);}
+      break;
+    case 'labels':
+      [...E.flt,...E.mil,...E.ship,...E.eq,...E.vol,...E.base,...E.nuc,...E.cctv,...E.apt].forEach(e=>{try{if(e&&e.label)e.label.show=LAY.labels;}catch(ex){}});
+      break;
+  }
+};
+
+/* ═══ WIRE UI ═════════════════════════════════ */
+function wireUI(){
+  const map={satellites:'lSat',iss:'lISS',starlink:'lSL',debris:'lDeb',orbits:'lOrb',flights:'lFlt',military:'lMil',nofly:'lNFZ',airports:'lApt',ships:'lShip',piracy:'lPir',cables:'lCab',naval:'lNav',seismic:'lEQ',wildfires:'lFire',hurricanes:'lHurr',volcanoes:'lVol',jamming:'lJam',tsunami:'lTsun',lightning:'lLig',conflict:'lCon',bases:'lBas',nuclear:'lNuc',cyber:'lCyb',drones:'lDrn',launches:'lLnch',pipelines:'lPipe',aurora:'lAur',traffic:'lTraf',cctv:'lCCTV',labels:'lLbl',refugees:'lRef'};
+  Object.entries(map).forEach(([k,id])=>{const el=document.getElementById(id);if(el)el.checked=!!LAY[k];});
+}
+
+/* ═══ INTERVALS ═══════════════════════════════ */
+function startIntervals(){
+  setInterval(refreshSats,5000);
+  setInterval(animateMilitary,1500);
+  setInterval(()=>{if(LAY.starlink)loadStarlink();},6000);
+  setInterval(()=>{if(LAY.flights)loadFlights();},45000);
+  setInterval(()=>{if(LAY.seismic)loadEarthquakes();},300000);
+  setInterval(()=>{if(LAY.wildfires)loadWildfires();},300000);
+  setInterval(()=>{if(LAY.hurricanes)loadHurricanes();},300000);
+}
+
+/* ═══ KEYBOARD ════════════════════════════════ */
+document.addEventListener('keydown',e=>{
+  if(document.activeElement===document.getElementById('si'))return;
+  switch(e.key){
+    case '1':setMode('normal');break;case '2':setMode('nvg');break;
+    case '3':setMode('flir');break;case '4':setMode('crt');break;
+    case 'i':case 'I':trackISS();break;
+    case 'f':case 'F':try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}catch(ex){}break;
+    case 'c':case 'C':openCCTV();break;
+    case 'Escape':flyTo(20,0,22000000);closeCCTV();break;
+  }
+});
+
+/* ═══ ✅ ROBUST BOOT TRIGGER ══════════════════
+   Fires immediately + as fallback on load
+   Works in iframes, React apps, embedded apps
+══════════════════════════════════════════════ */
+let bootCalled=false;
+function safeBoot(){
+  if(bootCalled)return;
+  bootCalled=true;
+  // Small delay ensures DOM/Cesium libs are ready
+  setTimeout(boot,150);
+}
+
+// Try all trigger methods
+if(document.readyState==='complete'||document.readyState==='interactive'){
+  safeBoot();
+}else{
+  document.addEventListener('DOMContentLoaded',safeBoot);
+  window.addEventListener('load',safeBoot);
+}
+// Ultimate fallback
+setTimeout(safeBoot,500);
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+[
+  {
+    "id": 1,
+    "name": "Phishing Campaign",
+    "difficulty": "beginner",
+    "description": "Multiple employees report suspicious emails with malicious attachments",
+    "objectives": [
+      "Identify phishing indicators",
+      "Contain affected systems",
+      "Document incident timeline",
+      "Send awareness notification"
+    ],
+    "mitre_techniques": [
+      "T1566.001",
+      "T1204.002"
+    ],
+    "duration_minutes": 30,
+    "roles_required": [
+      "analyst",
+      "responder"
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Ransomware Detection",
+    "difficulty": "intermediate",
+    "description": "SIEM alerts show encrypted files and ransom notes on multiple workstations",
+    "objectives": [
+      "Identify patient zero",
+      "Isolate infected systems",
+      "Determine ransomware variant",
+      "Initiate recovery procedures"
+    ],
+    "mitre_techniques": [
+      "T1486",
+      "T1490"
+    ],
+    "duration_minutes": 60,
+    "roles_required": [
+      "analyst",
+      "responder",
+      "manager"
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Insider Threat",
+    "difficulty": "advanced",
+    "description": "Unusual data access patterns detected from privileged user account",
+    "objectives": [
+      "Analyze access logs",
+      "Interview stakeholders",
+      "Assess data exfiltration risk",
+      "Recommend containment actions"
+    ],
+    "mitre_techniques": [
+      "T1078",
+      "T1530"
+    ],
+    "duration_minutes": 90,
+    "roles_required": [
+      "analyst",
+      "responder",
+      "manager",
+      "legal"
+    ]
+  },
+  {
+    "id": 4,
+    "name": "DDoS Attack",
+    "difficulty": "intermediate",
+    "description": "Web services experiencing severe performance degradation from traffic surge",
+    "objectives": [
+      "Confirm DDoS vs legitimate traffic",
+      "Implement traffic filtering",
+      "Coordinate with ISP",
+      "Document attack vectors"
+    ],
+    "mitre_techniques": [
+      "T1498"
+    ],
+    "duration_minutes": 45,
+    "roles_required": [
+      "analyst",
+      "responder"
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Supply Chain Compromise",
+    "difficulty": "advanced",
+    "description": "Third-party vendor reports breach that may affect your organization",
+    "objectives": [
+      "Assess vendor relationship impact",
+      "Scan for IOCs",
+      "Review access permissions",
+      "Update vendor risk assessment"
+    ],
+    "mitre_techniques": [
+      "T1199",
+      "T1071"
+    ],
+    "duration_minutes": 120,
+    "roles_required": [
+      "analyst",
+      "responder",
+      "manager"
+    ]
+  }
+]

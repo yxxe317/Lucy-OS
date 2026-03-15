@@ -1,0 +1,282 @@
+import { useState, useEffect, useRef } from 'react'
+import axios from 'axios'
+import {
+  Send, Mic, Search, Globe, User, LogOut, ArrowRightLeft,
+  MessageCircle, AudioWaveform, Heart, Settings as SettingsIcon,
+  Shield, Activity, Bot, Lock, Code, Eye, Brain, Monitor, Plug, Sparkles
+} from 'lucide-react'
+import SettingsPanel from './SettingsPanel'
+import LucyWidget from './LucyWidget'
+import Login from './Login'
+import './App.css'
+
+const API_URL = "http://127.0.0.1:8000";
+
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const [users, setUsers] = useState([])
+  const [globalIsSpeaking, setGlobalIsSpeaking] = useState(false)
+  const [showWidget, setShowWidget] = useState(true)
+  const [lucyEmotion, setLucyEmotion] = useState('neutral')
+  const [tab, setTab] = useState('voice')
+  const [input, setInput] = useState('')
+  const [messages, setMessages] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [isListening, setIsListening] = useState(false)
+  const [researchMode, setResearchMode] = useState(false)
+  const [deepResearch, setDeepResearch] = useState(false)
+  const messagesEndRef = useRef(null)
+  const audioRef = useRef(null)
+
+  const getToken = () => localStorage.getItem('token')?.trim() || ''
+
+  useEffect(() => {
+    checkAuth()
+    loadUsers()
+  }, [])
+
+  const checkAuth = async () => {
+    const token = getToken()
+    const username = localStorage.getItem('username')
+    if (token && username) {
+      try {
+        const res = await axios.get(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (res.data && res.data.success !== false) {
+          setIsAuthenticated(true)
+          setCurrentUser({ token, username, user_id: localStorage.getItem('user_id') })
+        }
+      } catch (error) {
+        localStorage.clear()
+      }
+    }
+  }
+
+  const loadUsers = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/users/list`)
+      setUsers(res.data.users || [])
+    } catch (error) {
+      console.error('Failed to load users')
+    }
+  }
+
+  const handleLogin = (userData) => {
+    const token = userData.token?.trim() || ''
+    if (!token) return
+    
+    localStorage.setItem('token', token)
+    localStorage.setItem('username', userData.username)
+    localStorage.setItem('user_id', String(userData.user_id))
+    
+    setIsAuthenticated(true)
+    setCurrentUser({ token, username: userData.username, user_id: userData.user_id })
+  }
+
+  const handleLogout = async () => {
+    const token = getToken()
+    if (token) {
+      await axios.post(`${API_URL}/auth/logout`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    }
+    localStorage.clear()
+    setIsAuthenticated(false)
+    setCurrentUser(null)
+    setShowUserMenu(false)
+  }
+
+  const playAudio = async (filename) => {
+    if (!filename) return
+    try {
+      const audio = new Audio(`${API_URL}/voice/audio/${encodeURIComponent(filename)}?t=${Date.now()}`)
+      audioRef.current = audio
+      setGlobalIsSpeaking(true)
+      setLucyEmotion('happy')
+      audio.onended = () => {
+        setGlobalIsSpeaking(false)
+        setLucyEmotion('neutral')
+      }
+      audio.onerror = () => {
+        setGlobalIsSpeaking(false)
+        setLucyEmotion('concerned')
+      }
+      await audio.play()
+    } catch (error) {
+      console.error('Audio error:', error)
+      setGlobalIsSpeaking(false)
+    }
+  }
+
+  const sendMessage = async () => {
+    if (!input.trim()) return
+    
+    const userMsg = { role: 'user', content: input, timestamp: new Date().toISOString() }
+    setMessages(prev => [...prev, userMsg])
+    setInput('')
+    setLoading(true)
+    setLucyEmotion('thinking')
+    
+    try {
+      const token = getToken()
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      
+      const res = await axios.post(`${API_URL}/query`, {
+        query: input,
+        research_mode: researchMode,
+        deep_research: deepResearch
+      }, { timeout: 180000, headers })
+      
+      const aiMsg = { role: 'ai', content: res.data.response, timestamp: new Date().toISOString() }
+      setMessages(prev => [...prev, aiMsg])
+      setLucyEmotion(res.data.response.includes('Error') ? 'concerned' : 'happy')
+      
+      if (res.data.auto_spoke && res.data.response) {
+        const speakRes = await axios.post(`${API_URL}/voice/speak`, { text: res.data.response })
+        if (speakRes.data.status === 'ready') {
+          await playAudio(speakRes.data.file)
+        }
+      }
+    } catch (error) {
+      setLucyEmotion('error')
+      setMessages(prev => [...prev, {
+        role: 'ai',
+        content: '❌ Error: ' + error.message,
+        timestamp: new Date().toISOString()
+      }])
+    } finally {
+      setLoading(false)
+      setResearchMode(false)
+      setDeepResearch(false)
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100)
+    }
+  }
+
+  const startListening = async () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      alert('❌ Use Chrome or Edge for voice')
+      return
+    }
+    try {
+      setIsListening(true)
+      const recognition = new SpeechRecognition()
+      recognition.lang = 'en-US'
+      recognition.continuous = true
+      recognition.interimResults = true
+      recognition.onstart = () => setIsListening(true)
+      recognition.onresult = (event) => setInput(event.results[0][0].transcript)
+      recognition.onend = () => setIsListening(false)
+      recognition.start()
+    } catch (error) {
+      setIsListening(false)
+      alert('❌ Mic error: ' + error.message)
+    }
+  }
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />
+  }
+
+  return (
+    <div className="app-container-v21">
+      <header className="header-v21">
+        <div className="logo-v21">
+          <Sparkles size={24} />
+          <h1>LUCY <span>OMNI</span> <span className="version">v21.0</span></h1>
+        </div>
+        <div className="user-menu">
+          <button className="user-btn" onClick={() => setShowUserMenu(!showUserMenu)}>
+            <User size={16} />
+            <span>{currentUser?.username}</span>
+          </button>
+          {showUserMenu && (
+            <div className="user-dropdown">
+              <div className="dropdown-header">
+                <User size={20} />
+                <span>{currentUser?.username}</span>
+              </div>
+              <div className="dropdown-section">
+                <button onClick={handleLogout} className="logout-btn">
+                  <LogOut size={14} /> Logout
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
+
+      <div className="main-layout-v21">
+        <aside className="sidebar-v21">
+          <nav className="nav-grid">
+            <button className={tab === 'voice' ? 'active' : ''} onClick={() => setTab('voice')}>
+              <AudioWaveform size={20} />
+            </button>
+            <button className={tab === 'settings' ? 'active' : ''} onClick={() => setTab('settings')}>
+              <SettingsIcon size={20} />
+            </button>
+          </nav>
+        </aside>
+
+        <main className="content-v21">
+          {tab === 'voice' ? (
+            <div className="voice-interface">
+              <div className="voice-visualizer">
+                <div className="voice-orb"></div>
+              </div>
+              <div className="voice-conversation-area">
+                {messages.slice(-6).map((msg, idx) => (
+                  <div key={idx} className={`message ${msg.role}`}>
+                    <p>{msg.content}</p>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+              <div className="voice-controls-area">
+                <button onClick={startListening} className="voice-btn-control">
+                  <Mic size={28} />
+                </button>
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Speak or type..."
+                  className="voice-input-control"
+                />
+                <button onClick={sendMessage} className="voice-btn-control">
+                  <Send size={28} />
+                </button>
+              </div>
+            </div>
+          ) : tab === 'settings' ? (
+            <SettingsPanel
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              onSpeak={playAudio}
+            />
+          ) : null}
+        </main>
+      </div>
+
+      {showWidget && (
+        <LucyWidget
+          isSpeaking={globalIsSpeaking}
+          emotion={lucyEmotion}
+          onClose={() => setShowWidget(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+export default App

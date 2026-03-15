@@ -1,0 +1,12 @@
+directories:
+  output: dist
+  buildResources: build
+appId: com.lucyos.desktop
+productName: Lucy OS
+win:
+  target:
+    - nsis
+    - portable
+  icon: icon.png
+files: []
+electronVersion: 40.6.1

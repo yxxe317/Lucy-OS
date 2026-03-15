@@ -1,0 +1,2 @@
+# Female UK
+self.voice = "en-GB-SoniaNeural"

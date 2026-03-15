@@ -1,0 +1,59 @@
+fastapi
+uvicorn
+pydantic
+python-multipart
+aiosqlite
+httpx
+SpeechRecognition
+edge-tts
+Pillow
+numpy
+pyautogui
+mss
+aiofiles
+websocketsPyJWT
+bcrypt
+python-multipart
+aiohttp
+python-dotenv
+
+# Core
+numpy>=1.24.0
+scipy>=1.10.0
+
+# AI/ML
+torch>=2.0.0
+transformers>=4.30.0
+
+# Web
+requests>=2.31.0
+flask>=2.3.0
+beautifulsoup4>=4.12.0
+
+# APIs
+python-telegram-bot>=20.3
+discord.py>=2.3.0
+tweepy>=4.14.0
+
+# Database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# Visualization
+matplotlib>=3.7.0
+plotly>=5.14.0
+
+# Audio
+pyttsx3>=2.90
+SpeechRecognition>=3.10.0
+
+# Quantum
+qiskit>=0.43.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Add these if not already present
+python-dotenv>=1.0.0
+httpx>=0.24.0
