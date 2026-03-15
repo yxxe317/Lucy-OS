@@ -11,7 +11,8 @@ numpy
 pyautogui
 mss
 aiofiles
-websocketsPyJWT
+websockets
+PyJWT
 bcrypt
 python-multipart
 aiohttp
