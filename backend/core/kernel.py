@@ -69,10 +69,13 @@ app = FastAPI(title="LUCY OS", version="21.0.0")
 app.include_router(module_router)
 # ==============================================
 
-# Update CORS for audio
+# Update CORS for audio and production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://lucy-os.vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -445,11 +448,15 @@ async def get_audio(filename: str):
         logger.error(f"❌ Audio file not found: {filepath}")
         raise HTTPException(404, f"Audio file not found: {filename}")
     
+    # Determine the origin from the request
+    origin = "http://localhost:5173"  # default
+    # You could also dynamically set based on request.headers.get("origin")
+    
     return FileResponse(
         filepath, 
         media_type="audio/mpeg",
         headers={
-            "Access-Control-Allow-Origin": "http://localhost:5173",
+            "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
             "Access-Control-Allow-Headers": "*",
             "Access-Control-Allow-Credentials": "true",
@@ -466,6 +473,7 @@ async def audio_options(filename: str):
         media_type="application/json",
         headers={
             "Access-Control-Allow-Origin": "http://localhost:5173",
+            "Access-Control-Allow-Origin": "https://lucy-os.vercel.app",
             "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
             "Access-Control-Allow-Headers": "*",
             "Access-Control-Allow-Credentials": "true",
