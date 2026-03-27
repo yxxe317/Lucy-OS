@@ -1061,3 +1061,448 @@ async def web_search(q: str = Query(..., description="Search query"), num: int =
             "error": str(e),
             "results": []
         }
+
+# ==================== EVOLUTION LAYER ENDPOINTS (Routines 101-120) ====================
+
+# Import Evolution routines
+try:
+    from core.routines_evolution import (
+        EvolutionRoutineManager,
+        EvolutionTask,
+        create_evolution_task,
+        E2TTSVoiceEngine,
+        DejaVuDetector,
+        MarketScout,
+        HardwarePulse,
+        SocialGhost,
+        RedTeamAnalyzer,
+        MemoryDreaming,
+        OldFriendProtocol,
+        ToolMaker,
+        CodeDocumentary,
+        ScreenDesaturation,
+        CodeSmelling,
+        DeepResearchAgent,
+        DigitalLegacy
+    )
+    EVOLUTION_AVAILABLE = True
+    logger.info("✅ Evolution layer loaded")
+except ImportError as e:
+    logger.warning(f"Evolution layer not available: {e}")
+    EVOLUTION_AVAILABLE = False
+
+# Evolution task model
+class EvolutionTaskRequest(BaseModel):
+    behavior_name: str
+    routine_number: int
+    priority: int
+    message: str
+    action_type: str
+
+class HardwarePulseRequest(BaseModel):
+    gpu_temp: int = 0
+    gpu_load: float = 0.0
+    fan_speed: int = 0
+    disk_temp: int = 0
+    disk_cycles: int = 0
+    vram_usage: float = 0.0
+    cpu_temp: int = 0
+    cpu_load: float = 0.0
+
+class RedTeamReportRequest(BaseModel):
+    project_name: str
+    business_plan: str
+
+class SocialDecayRequest(BaseModel):
+    contact_name: str
+    last_interaction: str
+
+class MemoryDreamingRequest(BaseModel):
+    log_path: str = "backend/logs/memory.jsonl"
+
+class DeepResearchRequest(BaseModel):
+    topic: str
+    duration_minutes: int = 30
+
+class DigitalLegacyRequest(BaseModel):
+    month: str = ""
+
+# Global evolution manager instance
+_evolution_manager: Optional[EvolutionRoutineManager] = None
+
+def _init_evolution_manager():
+    """Initialize evolution manager on first request"""
+    global _evolution_manager
+    if _evolution_manager is None:
+        _evolution_manager = EvolutionRoutineManager()
+        _evolution_manager.start()
+        logger.info("[Evolution] Manager initialized and started")
+
+@module_router.get("/evolution/status")
+async def evolution_status():
+    """Get evolution layer status"""
+    if not EVOLUTION_AVAILABLE:
+        return {"available": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    return _evolution_manager.get_status()
+
+@module_router.post("/evolution/task")
+async def execute_evolution_task(request: EvolutionTaskRequest):
+    """Execute an evolution routine task"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    
+    task = create_evolution_task(
+        behavior_name=request.behavior_name,
+        routine_number=request.routine_number,
+        priority=request.priority,
+        message=request.message,
+        action_type=request.action_type
+    )
+    
+    result = _evolution_manager.execute_evolution_task(task)
+    return {"success": True, "result": result, "task": task.to_dict()}
+
+@module_router.get("/evolution/hardware-pulse")
+async def get_hardware_pulse():
+    """Get current hardware pulse data"""
+    if not EVOLUTION_AVAILABLE:
+        return {"available": False, "pulse": None}
+    
+    _init_evolution_manager()
+    pulse = _evolution_manager.hardware_pulse.get_pulse_data()
+    return {
+        "available": True,
+        "pulse": {
+            "gpu_temp": pulse.gpu_temp,
+            "gpu_load": pulse.gpu_load,
+            "fan_speed": pulse.fan_speed,
+            "disk_temp": pulse.disk_temp,
+            "vram_usage": pulse.vram_usage,
+            "cpu_temp": pulse.cpu_temp,
+            "cpu_load": pulse.cpu_load,
+            "intensity": _evolution_manager.hardware_pulse.get_pulse_intensity()
+        }
+    }
+
+@module_router.post("/evolution/red-team")
+async def generate_red_team_report(request: RedTeamReportRequest):
+    """Generate red team failure report"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    report = _evolution_manager.red_team.generate_failure_report(
+        project_name=request.project_name,
+        business_plan=request.business_plan
+    )
+    return {
+        "success": True,
+        "report": {
+            "report_id": report.report_id,
+            "project_name": report.project_name,
+            "failure_reasons": report.failure_reasons,
+            "risk_scores": report.risk_scores,
+            "recommendations": report.recommendations,
+            "severity": report.severity
+        }
+    }
+
+@module_router.get("/evolution/social-decay")
+async def get_social_decay():
+    """Get contacts with social decay"""
+    if not EVOLUTION_AVAILABLE:
+        return {"available": False, "contacts": []}
+    
+    _init_evolution_manager()
+    contacts = _evolution_manager.old_friend.get_decay_contacts()
+    return {
+        "available": True,
+        "contacts": [
+            {
+                "name": c.contact_name,
+                "last_interaction": c.last_interaction,
+                "decay_score": c.decay_score,
+                "suggested_action": c.suggested_action,
+                "meme_suggestions": c.meme_suggestions
+            }
+            for c in contacts
+        ]
+    }
+
+@module_router.post("/evolution/social-draft")
+async def draft_social_reply(platform: str = "telegram", message: str = "Hello!", tone: str = "friendly"):
+    """Draft a social reply"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    draft = _evolution_manager.social_ghost.draft_reply(platform, message, tone)
+    return {
+        "success": True,
+        "draft": {
+            "platform": draft.platform,
+            "original_message": draft.original_message,
+            "draft": draft.draft,
+            "tone": draft.tone,
+            "emoji": draft.emoji,
+            "status": draft.status
+        }
+    }
+
+@module_router.post("/evolution/memory-dream")
+async def trigger_memory_dreaming(request: MemoryDreamingRequest):
+    """Trigger memory dreaming/compression"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    _evolution_manager.memory_dreaming._compress_and_dream()
+    memories = _evolution_manager.memory_dreaming.get_core_memories()
+    return {
+        "success": True,
+        "memories_created": len(memories),
+        "memories": [m.to_dict() for m in memories[:10]]
+    }
+
+@module_router.post("/evolution/deja-vu")
+async def check_deja_vu(error_message: str, code_context: str = ""):
+    """Check for repeat errors (Déjà Vu)"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    result = _evolution_manager.deja_vu.detect_repeat_error(error_message, code_context)
+    return {
+        "success": True,
+        "found": result.get("found", False),
+        "occurrence": result.get("occurrence", 1),
+        "first_seen": result.get("first_seen"),
+        "last_seen": result.get("last_seen"),
+        "fix_applied": result.get("fix_applied", False)
+    }
+
+@module_router.post("/evolution/market-scout")
+async def scout_market_gaps(topics: List[str] = ["AI Agents", "Automation", "LLM"]):
+    """Scout market gaps"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    gaps = _evolution_manager.market_scout.scout_market_gaps(topics)
+    return {
+        "success": True,
+        "gaps": gaps,
+        "trending_products": _evolution_manager.market_scout.get_trending_products()
+    }
+
+@module_router.post("/evolution/deep-research")
+async def conduct_deep_research(request: DeepResearchRequest):
+    """Conduct deep research on a topic"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    result = _evolution_manager.deep_research.conduct_research(
+        topic=request.topic,
+        duration_minutes=request.duration_minutes
+    )
+    return {
+        "success": True,
+        "research": {
+            "topic": result["topic"],
+            "duration_minutes": result["duration_minutes"],
+            "findings": result["findings"],
+            "sources": result["sources"],
+            "summary": result["summary"]
+        }
+    }
+
+@module_router.post("/evolution/digital-legacy")
+async def generate_digital_legacy(request: DigitalLegacyRequest):
+    """Generate monthly digital legacy letter"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    letter = _evolution_manager.digital_legacy.generate_monthly_letter()
+    return {
+        "success": True,
+        "letter": {
+            "month": letter["month"],
+            "lessons_learned": letter["lessons_learned"],
+            "achievements": letter["achievements"],
+            "areas_for_improvement": letter["areas_for_improvement"],
+            "reflection": letter["reflection"]
+        }
+    }
+
+@module_router.get("/evolution/tool-maker/list")
+async def list_created_tools():
+    """List all tools created by Tool Maker"""
+    if not EVOLUTION_AVAILABLE:
+        return {"available": False, "tools": []}
+    
+    _init_evolution_manager()
+    tools = _evolution_manager.tool_maker.list_tools()
+    return {
+        "available": True,
+        "tools": tools
+    }
+
+@module_router.post("/evolution/tool-maker/create")
+async def create_tool(request: dict):
+    """Create a new tool"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    request_text = request.get("request", "")
+    tool_info = _evolution_manager.tool_maker.create_tool(request_text)
+    return {
+        "success": True,
+        "tool": tool_info
+    }
+
+@module_router.get("/evolution/code-smell")
+async def analyze_code_smells(file_path: str = "backend/core/kernel.py"):
+    """Analyze code for smells"""
+    if not EVOLUTION_AVAILABLE:
+        return {"available": False, "smells": []}
+    
+    _init_evolution_manager()
+    smells = _evolution_manager.code_smelling.analyze_file(file_path)
+    return {
+        "available": True,
+        "file": file_path,
+        "smells": smells
+    }
+
+@module_router.get("/evolution/code-documentary")
+async def generate_documentary(project_path: str = "backend"):
+    """Generate code documentary"""
+    if not EVOLUTION_AVAILABLE:
+        return {"available": False, "documentary": None}
+    
+    _init_evolution_manager()
+    documentary = _evolution_manager.code_documentary.generate_documentary(project_path)
+    return {
+        "available": True,
+        "documentary": {
+            "title": documentary["title"],
+            "commits_count": documentary["commits_count"],
+            "script": documentary["script"]
+        }
+    }
+
+@module_router.get("/evolution/screen-desaturation")
+async def get_screen_desaturation_status():
+    """Get screen desaturation status"""
+    if not EVOLUTION_AVAILABLE:
+        return {"available": False, "status": None}
+    
+    _init_evolution_manager()
+    status = _evolution_manager.screen_desaturation.get_status()
+    return {
+        "available": True,
+        "status": status
+    }
+
+@module_router.post("/evolution/screen-desaturation/apply")
+async def apply_desaturation():
+    """Apply screen desaturation"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    _evolution_manager.screen_desaturation.apply_desaturation()
+    return {"success": True, "message": "Desaturation applied"}
+
+@module_router.post("/evolution/screen-desaturation/remove")
+async def remove_desaturation():
+    """Remove screen desaturation"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    _evolution_manager.screen_desaturation.remove_desaturation()
+    return {"success": True, "message": "Desaturation removed"}
+
+@module_router.post("/evolution/voice/synthesize")
+async def synthesize_voice(text: str, emotion: str = "neutral", speed: float = 1.0, pitch: float = 1.0):
+    """Synthesize voice with E2-TTS"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    engine = E2TTSVoiceEngine()
+    audio = engine.synthesize(text, emotion, speed, pitch)
+    return {
+        "success": True,
+        "audio_data": audio.decode() if isinstance(audio, bytes) else audio,
+        "emotion": emotion,
+        "speed": speed,
+        "pitch": pitch
+    }
+
+@module_router.post("/evolution/voice/emotion")
+async def set_voice_emotion(emotion: str):
+    """Set voice emotion"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    _evolution_manager.voice_engine.set_emotion(emotion)
+    return {"success": True, "emotion": emotion}
+
+@module_router.get("/evolution/memory/letters")
+async def get_digital_legacy_letters():
+    """Get all digital legacy letters"""
+    if not EVOLUTION_AVAILABLE:
+        return {"available": False, "letters": []}
+    
+    _init_evolution_manager()
+    letters = _evolution_manager.digital_legacy.get_letters()
+    return {
+        "available": True,
+        "letters": letters
+    }
+
+@module_router.get("/evolution/memory/core")
+async def get_core_memories():
+    """Get core memories"""
+    if not EVOLUTION_AVAILABLE:
+        return {"available": False, "memories": []}
+    
+    _init_evolution_manager()
+    memories = _evolution_manager.memory_dreaming.get_core_memories()
+    return {
+        "available": True,
+        "memories": [m.to_dict() for m in memories]
+    }
+
+@module_router.get("/evolution/voice/cache")
+async def get_voice_cache():
+    """Get voice cache status"""
+    if not EVOLUTION_AVAILABLE:
+        return {"available": False, "cache_size": 0}
+    
+    _init_evolution_manager()
+    cache_size = len(_evolution_manager.voice_engine._voice_cache)
+    return {
+        "available": True,
+        "cache_size": cache_size
+    }
+
+@module_router.post("/evolution/voice/cache/clear")
+async def clear_voice_cache():
+    """Clear voice cache"""
+    if not EVOLUTION_AVAILABLE:
+        return {"success": False, "message": "Evolution layer not installed"}
+    
+    _init_evolution_manager()
+    _evolution_manager.voice_engine.clear_cache()
+    return {"success": True, "message": "Voice cache cleared"}

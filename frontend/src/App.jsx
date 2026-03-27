@@ -1,6 +1,6 @@
 // App.jsx - ULTIMATE VERSION WITH ENHANCED CONTEXT
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Globe2 } from "lucide-react";
+import { Globe2, Heart, Activity, Zap, Shield, Cpu, Network } from "lucide-react";
 import axios from "axios";
 import {
   MessageSquare,
@@ -26,13 +26,27 @@ import {
   ChevronLeft,
   ChevronRight,
   Brain,
-  Globe
+  Globe,
+  AlertCircle,
+  CheckCircle,
+  Clock
 } from "lucide-react";
 import Login from "./Login";
 import ModulesPanel from "./components/ModulesPanel";
+import CognitiveDashboard from "./CognitiveDashboard";
+import BiometricEnrollment from "./components/BiometricEnrollment";
+import Dashboard from "./components/Dashboard";
 import "./App.css";
+import { EvolutionRoutineManager, create_evolution_task } from "../backend/core/routines_evolution";
 
-const API_URL = "https://lucy-os-backend.onrender.com";
+const API_URL = "http://192.168.1.2:8000";
+
+// Initialize EvolutionRoutineManager for Evolution Layer
+const evolutionManager = new EvolutionRoutineManager();
+
+// WebSocket connection for autonomous heartbeat
+let ws = null;
+const WS_URL = "ws://192.168.1.2:8000/ws/heartbeat";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -43,6 +57,7 @@ function App() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [activeTab, setActiveTab] = useState("chat");
   const [searchMode, setSearchMode] = useState(false);
+  const [showCognitivePanel, setShowCognitivePanel] = useState(false);
   
   // Voice
   const audioRef = useRef(null);
@@ -71,6 +86,18 @@ function App() {
   const inputRef = useRef(null);
   const waveformCanvasRef = useRef(null);
   const animationFrameRef = useRef(null);
+  
+  // WebSocket and health state
+  const [healthStatus, setHealthStatus] = useState(null);
+  const [proactiveTasks, setProactiveTasks] = useState([]);
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastHealthCheck, setLastHealthCheck] = useState(null);
+  
+  // Evolution Layer state
+  const [showEvolutionPanel, setShowEvolutionPanel] = useState(false);
+  const [pulseData, setPulseData] = useState(null);
+  const [redTeamReport, setRedTeamReport] = useState(null);
+  const [evolutionStatus, setEvolutionStatus] = useState(null);
 
   // User data storage - LOAD FROM LOCALSTORAGE
   const [userData, setUserData] = useState(() => {
@@ -143,6 +170,59 @@ function App() {
     checkAuth();
     const t = setTimeout(() => inputRef.current?.focus(), 200);
     return () => clearTimeout(t);
+  }, []);
+
+  // WebSocket connection for autonomous heartbeat
+  useEffect(() => {
+    const connectWebSocket = () => {
+      try {
+        ws = new WebSocket(WS_URL);
+        
+        ws.onopen = () => {
+          console.log("🔌 WebSocket connected to autonomous heartbeat");
+          setIsConnected(true);
+          setLastHealthCheck(Date.now());
+        };
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === "health_update") {
+              setHealthStatus(data.data);
+              setLastHealthCheck(Date.now());
+            } else if (data.type === "proactive_tasks") {
+              setProactiveTasks(data.data);
+            }
+          } catch (e) {
+            console.error("WebSocket message parse error:", e);
+          }
+        };
+        
+        ws.onerror = (error) => {
+          console.error("WebSocket error:", error);
+          setIsConnected(false);
+        };
+        
+        ws.onclose = () => {
+          console.log("🔌 WebSocket disconnected");
+          setIsConnected(false);
+          // Auto-reconnect after 3 seconds
+          setTimeout(connectWebSocket, 3000);
+        };
+      } catch (e) {
+        console.error("WebSocket connection error:", e);
+      }
+    };
+    
+    connectWebSocket();
+    
+    return () => {
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+    };
   }, []);
 
   const handleLogin = (userData) => {
@@ -809,11 +889,20 @@ ${text}
           console.log("📝 Enhanced context sent to LLM");
         }
 
-        const response = await fetch(`${API_URL}/auth/login`, {
-         method: 'POST',  // ← MAKE SURE THIS IS 'POST'
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ username, password })
-        })
+        // Stream response from LLM endpoint
+        const response = await fetch(`${API_URL}/stream`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ 
+            message: text,
+            context: contextPrompt,
+            system_prompt: "You are Lucy, a personal AI assistant. Be warm, friendly, and natural in your responses. Use the user's name and interests when relevant."
+          })
+        });
+
         if (!response.body) throw new Error("No response body");
 
         const reader = response.body.getReader();
@@ -931,6 +1020,13 @@ ${text}
     setSearchMode(!searchMode);
   };
 
+  // Helper function for priority colors
+  const getPriorityColor = (priority) => {
+    if (priority >= 8) return "#ef4444"; // Red for high priority
+    if (priority >= 5) return "#f59e0b"; // Orange for medium priority
+    return "#10b981"; // Green for low priority
+  };
+
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
   }
@@ -980,6 +1076,20 @@ ${text}
               <Brain size={16} />
               Modules
             </button>
+            <button
+              className={activeTab === "security" ? "active" : ""}
+              onClick={() => setActiveTab("security")}
+            >
+              <Shield size={16} />
+              Security
+            </button>
+            <button
+              className={activeTab === "dashboard" ? "active" : ""}
+              onClick={() => setActiveTab("dashboard")}
+            >
+              <Activity size={16} />
+              Dashboard
+            </button>
           </nav>
         </div>
 
@@ -1016,6 +1126,22 @@ ${text}
               {isPaused ? <Play size={18} /> : <Pause size={18} />}
             </button>
           )}
+          
+          <button 
+            className="cognitive-btn"
+            onClick={() => setShowCognitivePanel(true)}
+            title="Cognitive Dashboard"
+          >
+            <Heart size={18} />
+          </button>
+          
+          <button 
+            className="evolution-btn"
+            onClick={() => setShowEvolutionPanel(true)}
+            title="Evolution Layer"
+          >
+            <Activity size={18} />
+          </button>
         </div>
       </header>
 
@@ -1270,9 +1396,176 @@ ${text}
         )}
 
         {activeTab === "modules" && <ModulesPanel />}
+        
+        {activeTab === "security" && <BiometricEnrollment />}
+        
+        {activeTab === "dashboard" && <Dashboard />}
+        
+        {/* Cognitive Dashboard Panel */}
+        {showCognitivePanel && (
+          <CognitiveDashboard />
+        )}
+        
+        {/* Evolution Layer Panel */}
+        {showEvolutionPanel && (
+          <div className="evolution-panel-overlay">
+            <div className="evolution-panel">
+              <div className="evolution-header">
+                <h2>🧬 Evolution Layer</h2>
+                <button className="close-btn" onClick={() => setShowEvolutionPanel(false)}>
+                  ✕
+                </button>
+              </div>
+              
+              <div className="evolution-content">
+                {/* Pulse Monitor Section */}
+                <div className="evolution-section">
+                  <h3>📊 Pulse Monitor</h3>
+                  <div className="pulse-monitor">
+                    <div className="pulse-stat">
+                      <span className="pulse-label">Cognitive Load</span>
+                      <div className="pulse-bar-container">
+                        <div className="pulse-bar" style={{ width: '45%' }}></div>
+                      </div>
+                      <span className="pulse-value">45%</span>
+                    </div>
+                    <div className="pulse-stat">
+                      <span className="pulse-label">Learning Rate</span>
+                      <div className="pulse-bar-container">
+                        <div className="pulse-bar" style={{ width: '62%' }}></div>
+                      </div>
+                      <span className="pulse-value">62%</span>
+                    </div>
+                    <div className="pulse-stat">
+                      <span className="pulse-label">Adaptation Score</span>
+                      <div className="pulse-bar-container">
+                        <div className="pulse-bar" style={{ width: '78%' }}></div>
+                      </div>
+                      <span className="pulse-value">78%</span>
+                    </div>
+                    <div className="pulse-stat">
+                      <span className="pulse-label">Neural Efficiency</span>
+                      <div className="pulse-bar-container">
+                        <div className="pulse-bar" style={{ width: '85%' }}></div>
+                      </div>
+                      <span className="pulse-value">85%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="pulse-actions">
+                    <button className="pulse-btn" onClick={() => {
+                      // Trigger pulse refresh
+                      fetch(`${API_URL}/api/evolution/pulse`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                      }).then(res => res.json()).then(data => {
+                        setPulseData(data);
+                      });
+                    }}>
+                      🔄 Refresh Pulse
+                    </button>
+                    <button className="pulse-btn" onClick={() => {
+                      // Trigger evolution task
+                      create_evolution_task().then(task => {
+                        setEvolutionStatus(task);
+                      });
+                    }}>
+                      🧬 Trigger Evolution
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Red Team Section */}
+                <div className="evolution-section">
+                  <h3>🛡️ Red Team Analysis</h3>
+                  <div className="red-team-section">
+                    <div className="red-team-status">
+                      <span className="status-indicator safe"></span>
+                      <span>System Status: Safe</span>
+                    </div>
+                    
+                    <div className="red-team-controls">
+                      <button className="red-team-btn" onClick={() => {
+                        // Trigger red team analysis
+                        fetch(`${API_URL}/api/evolution/red-team/analyze`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' }
+                        }).then(res => res.json()).then(data => {
+                          setRedTeamReport(data);
+                        });
+                      }}>
+                        🔍 Run Red Team Scan
+                      </button>
+                      <button className="red-team-btn" onClick={() => {
+                        // Trigger vulnerability assessment
+                        fetch(`${API_URL}/api/evolution/red-team/vulnerabilities`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' }
+                        }).then(res => res.json()).then(data => {
+                          setRedTeamReport(data);
+                        });
+                      }}>
+                        📋 Vulnerability Assessment
+                      </button>
+                    </div>
+                    
+                    {redTeamReport && (
+                      <div className="red-team-report">
+                        <h4>Analysis Results</h4>
+                        <div className="report-item">
+                          <span className="report-label">Vulnerabilities Found:</span>
+                          <span className="report-value">{redTeamReport.vulnerabilities || 0}</span>
+                        </div>
+                        <div className="report-item">
+                          <span className="report-label">Risk Level:</span>
+                          <span className={`report-value ${redTeamReport.risk_level || 'low'}`}>
+                            {redTeamReport.risk_level || 'Low'}
+                          </span>
+                        </div>
+                        {redTeamReport.recommendations && redTeamReport.recommendations.length > 0 && (
+                          <div className="report-item">
+                            <span className="report-label">Recommendations:</span>
+                            <ul>
+                              {redTeamReport.recommendations.map((rec, idx) => (
+                                <li key={idx}>{rec}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Evolution Tasks Section */}
+                <div className="evolution-section">
+                  <h3>🎯 Active Evolution Tasks</h3>
+                  <div className="evolution-tasks">
+                    {evolutionStatus ? (
+                      <div className="active-task">
+                        <div className="task-info">
+                          <span className="task-name">{evolutionStatus.task_name || 'Evolution Task'}</span>
+                          <span className="task-status">{evolutionStatus.status || 'Running'}</span>
+                        </div>
+                        <div className="task-progress">
+                          <div className="progress-bar">
+                            <div className="progress-fill" style={{ width: evolutionStatus.progress || 0 }}></div>
+                          </div>
+                          <span className="progress-text">{evolutionStatus.progress || 0}%</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="no-tasks">No active evolution tasks</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
 }
 
-export default App;  
+export default App;

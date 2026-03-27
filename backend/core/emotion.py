@@ -1,4 +1,5 @@
 import logging
+from typing import Dict, Any
 
 logger = logging.getLogger("LucyEmotion")
 
@@ -67,5 +68,20 @@ class EmotionalState:
             "confidence": round(self.confidence, 2),
             "attachment": round(self.attachment, 2)
         }
+    
+    def set_state(self, new_state: Dict[str, Any]):
+        """Set emotional state from a dictionary"""
+        if "curiosity" in new_state:
+            self.curiosity = new_state["curiosity"]
+        if "focus" in new_state:
+            self.focus = new_state["focus"]
+        if "stress" in new_state:
+            self.stress = new_state["stress"]
+        if "confidence" in new_state:
+            self.confidence = new_state["confidence"]
+        if "attachment" in new_state:
+            self.attachment = new_state["attachment"]
+        
+        logger.info(f"💓 Emotion State Set: {new_state}")
 
 emotion = EmotionalState()

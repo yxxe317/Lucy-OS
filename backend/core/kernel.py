@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Header, Request, Response
+from fastapi import FastAPI, HTTPException, UploadFile, File, Header, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from core.memory import memory
 from core.llm import llm
 from core.emotion import emotion
-from core.autonomy import autonomy
+from core.autonomy import autonomy, heartbeat
 from core.vector_memory import vector_memory
 from core.personality import personality
 from core.plugins import plugin_manager
@@ -36,12 +36,24 @@ from core.evolution import evolution
 from core.memory_advanced import advanced_memory
 from core.consciousness import consciousness
 from core.world_builder import world_builder
+from core.proactive import proactive_assistant
+from core.vram_manager import vram_manager
+from core.reasoning import reasoning_engine
+from core.settings_routes import router as settings_router
+from core.autonomy import BIOMETRIC_ENABLED
 import httpx
 from fastapi import HTTPException
 import time
 from fastapi import HTTPException, status
 # ===== NEW MODULE IMPORTS - DO NOT REMOVE =====
 from core.api_router import module_router
+# ===== SECURITY MODULE IMPORTS - DO NOT REMOVE =====
+from api.security import (
+    train_biometric_model,
+    verify_typing_rhythm,
+    trigger_lockdown,
+    get_security_status
+)
 # ===============================================
 
 OPENSKY_URL = "https://opensky-network.org/api/states/all"
@@ -67,6 +79,8 @@ app = FastAPI(title="LUCY OS", version="21.0.0")
 
 # ===== NEW MODULE ROUTER - DO NOT REMOVE =====
 app.include_router(module_router)
+# Include settings routes for master config and VRAM management
+app.include_router(settings_router)
 # ==============================================
 
 # Update CORS for audio and production
@@ -74,13 +88,12 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://lucy-os.vercel.app"
-        "https://lucy-os-two.vercel.app"
+        "http://192.168.1.2:5173",
+        "http://192.168.1.2:8000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
 )
 
 conversation_history: Dict[int, List[Dict]] = {}
@@ -90,6 +103,18 @@ async def startup():
     await memory.init_db()
     logger.info("🧠 Lucy OS v21.0 Online - All Systems Ready")
     asyncio.create_task(autonomy.start_thought_loop())
+    
+    # Start autonomous heartbeat system
+    try:
+        await heartbeat.start()
+        logger.info("💓 Autonomous Heartbeat System Started")
+        
+        # Register reasoning engine with proactive system
+        from core.proactive import proactive_assistant
+        proactive_assistant.reasoning_engine = reasoning_engine
+        logger.info("🧠 Reasoning Tree integrated with Proactive System")
+    except Exception as e:
+        logger.error(f"Failed to start heartbeat: {e}")
 
 @app.get("/health")
 async def health():
@@ -99,6 +124,24 @@ async def health():
         "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "active_sessions": len(auth.sessions)
     }
+
+@app.get("/health/autonomous")
+async def get_autonomous_health():
+    """Get autonomous heartbeat system health status"""
+    try:
+        return heartbeat.get_health_status()
+    except Exception as e:
+        logger.error(f"Autonomous health check error: {e}")
+        return {"error": str(e)}
+
+@app.get("/proactive/tasks")
+async def get_proactive_tasks():
+    """Get available proactive tasks"""
+    try:
+        return heartbeat.get_proactive_tasks()
+    except Exception as e:
+        logger.error(f"Get proactive tasks error: {e}")
+        return {"error": str(e)}
 
 flight_cache = {
     "data": None,
@@ -590,6 +633,579 @@ async def submit_feedback(request: Request):
     return {"success": True}
 
 # ═══════════════════════════════════════════════════════════════
+# EVOLUTION ROUTINES ENDPOINTS (101-120)
+# ═══════════════════════════════════════════════════════════════
+from core.routines_evolution import (
+    EvolutionRoutineManager,
+    create_evolution_task,
+    EvolutionTask
+)
+
+_evolution_manager = EvolutionRoutineManager()
+
+@app.get("/evolution/routines/status")
+async def get_evolution_routines_status():
+    """Get evolution layer status"""
+    try:
+        return _evolution_manager.get_status()
+    except Exception as e:
+        logger.error(f"Evolution status error: {e}")
+        return {"error": str(e)}
+
+@app.post("/evolution/routines/start")
+async def start_evolution_routines():
+    """Start evolution layer routines"""
+    try:
+        _evolution_manager.start()
+        return {"success": True, "message": "Evolution layer started"}
+    except Exception as e:
+        logger.error(f"Start evolution error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/routines/stop")
+async def stop_evolution_routines():
+    """Stop evolution layer routines"""
+    try:
+        _evolution_manager.stop()
+        return {"success": True, "message": "Evolution layer stopped"}
+    except Exception as e:
+        logger.error(f"Stop evolution error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/routines/execute")
+async def execute_evolution_routine(request: Request):
+    """Execute a specific evolution routine"""
+    try:
+        body = await request.json()
+        routine_number = body.get("routine_number")
+        message = body.get("message", "")
+        action_type = body.get("action_type", "")
+        priority = body.get("priority", 5)
+        metadata = body.get("metadata", {})
+        
+        task = create_evolution_task(
+            behavior_name=f"Routine_{routine_number}",
+            routine_number=routine_number,
+            priority=priority,
+            message=message,
+            action_type=action_type,
+            metadata=metadata
+        )
+        
+        result = _evolution_manager.execute_evolution_task(task)
+        return {"success": True, "result": result}
+    except Exception as e:
+        logger.error(f"Execute evolution routine error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/pulse")
+async def get_hardware_pulse():
+    """Get hardware pulse data for UI breathing animation"""
+    try:
+        pulse_data = _evolution_manager.hardware_pulse.get_pulse_data()
+        return {
+            "success": True,
+            "pulse": {
+                "gpu_temp": pulse_data.gpu_temp,
+                "gpu_load": pulse_data.gpu_load,
+                "fan_speed": pulse_data.fan_speed,
+                "disk_temp": pulse_data.disk_temp,
+                "disk_cycles": pulse_data.disk_cycles,
+                "vram_usage": pulse_data.vram_usage,
+                "cpu_temp": pulse_data.cpu_temp,
+                "cpu_load": pulse_data.cpu_load
+            },
+            "intensity": _evolution_manager.hardware_pulse.get_pulse_intensity()
+        }
+    except Exception as e:
+        logger.error(f"Get pulse error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/red-team/reports")
+async def get_red_team_reports():
+    """Get all red team failure reports"""
+    try:
+        reports = _evolution_manager.red_team.get_reports()
+        return {
+            "success": True,
+            "reports": [
+                {
+                    "report_id": r.report_id,
+                    "project_name": r.project_name,
+                    "failure_reasons": r.failure_reasons,
+                    "risk_scores": r.risk_scores,
+                    "recommendations": r.recommendations,
+                    "severity": r.severity,
+                    "timestamp": r.timestamp
+                }
+                for r in reports
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Get red team reports error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/red-team/analyze")
+async def analyze_with_red_team(request: Request):
+    """Generate a red team failure report for a business plan"""
+    try:
+        body = await request.json()
+        project_name = body.get("project_name", "")
+        business_plan = body.get("business_plan", "")
+        
+        report = _evolution_manager.red_team.generate_failure_report(project_name, business_plan)
+        return {
+            "success": True,
+            "report": {
+                "report_id": report.report_id,
+                "project_name": report.project_name,
+                "failure_reasons": report.failure_reasons,
+                "risk_scores": report.risk_scores,
+                "recommendations": report.recommendations,
+                "severity": report.severity,
+                "timestamp": report.timestamp
+            }
+        }
+    except Exception as e:
+        logger.error(f"Red team analysis error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/core-memories")
+async def get_core_memories():
+    """Get compressed core memories from Memory Dreaming"""
+    try:
+        memories = _evolution_manager.memory_dreaming.get_core_memories()
+        return {
+            "success": True,
+            "memories": [
+                {
+                    "memory_id": m.memory_id,
+                    "type": m.type,
+                    "content": m.content,
+                    "timestamp": m.timestamp,
+                    "confidence": m.confidence,
+                    "tags": m.tags
+                }
+                for m in memories
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Get core memories error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/social/decay")
+async def get_social_decay_contacts():
+    """Get contacts with social decay for outreach suggestions"""
+    try:
+        contacts = _evolution_manager.old_friend.get_decay_contacts()
+        return {
+            "success": True,
+            "contacts": [
+                {
+                    "contact_name": c.contact_name,
+                    "last_interaction": c.last_interaction,
+                    "decay_score": c.decay_score,
+                    "suggested_action": c.suggested_action,
+                    "meme_suggestions": c.meme_suggestions
+                }
+                for c in contacts
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Get social decay error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/tools/list")
+async def list_created_tools():
+    """List all tools created by Tool-Maker"""
+    try:
+        tools = _evolution_manager.tool_maker.list_tools()
+        return {
+            "success": True,
+            "tools": [
+                {
+                    "name": t["name"],
+                    "request": t["request"],
+                    "path": t["path"],
+                    "shortcut": t["shortcut"],
+                    "created_at": t["created_at"],
+                    "status": t["status"]
+                }
+                for t in tools
+            ]
+        }
+    except Exception as e:
+        logger.error(f"List tools error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/tools/create")
+async def create_tool(request: Request):
+    """Autonomously create a new Python tool"""
+    try:
+        body = await request.json()
+        request_desc = body.get("request", "")
+        
+        tool_info = _evolution_manager.tool_maker.create_tool(request_desc)
+        return {
+            "success": True,
+            "tool": {
+                "name": tool_info["name"],
+                "request": tool_info["request"],
+                "path": tool_info["path"],
+                "shortcut": tool_info["shortcut"],
+                "created_at": tool_info["created_at"],
+                "status": tool_info["status"]
+            }
+        }
+    except Exception as e:
+        logger.error(f"Create tool error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/personality/traits")
+async def get_personality_traits():
+    """Get current personality traits adjusted by Laughter Learning"""
+    try:
+        traits = _evolution_manager.laughter_learning.get_personality_traits()
+        return {
+            "success": True,
+            "traits": traits
+        }
+    except Exception as e:
+        logger.error(f"Get personality traits error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/biometric/data")
+async def get_biometric_data():
+    """Get rPPG heart rate and biometric data"""
+    try:
+        data = _evolution_manager.rppg_heart_rate.monitor()
+        return {
+            "success": True,
+            "biometric": {
+                "heart_rate": data.heart_rate,
+                "blink_rate": data.blink_rate,
+                "stress_level": data.stress_level,
+                "timestamp": data.timestamp
+            }
+        }
+    except Exception as e:
+        logger.error(f"Get biometric data error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/research/results")
+async def get_research_results():
+    """Get deep research results"""
+    try:
+        results = _evolution_manager.deep_research.get_results()
+        return {
+            "success": True,
+            "results": [
+                {
+                    "topic": r["topic"],
+                    "duration_minutes": r["duration_minutes"],
+                    "status": r["status"],
+                    "findings": r["findings"],
+                    "sources": r["sources"],
+                    "summary": r["summary"]
+                }
+                for r in results
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Get research results error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/research/conduct")
+async def conduct_research(request: Request):
+    """Conduct deep research on a topic"""
+    try:
+        body = await request.json()
+        topic = body.get("topic", "")
+        duration = body.get("duration_minutes", 30)
+        
+        result = _evolution_manager.deep_research.conduct_research(topic, duration)
+        return {
+            "success": True,
+            "research": result
+        }
+    except Exception as e:
+        logger.error(f"Conduct research error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/digital-legacy/letters")
+async def get_digital_legacy_letters():
+    """Get monthly self-reflection letters from Digital Legacy"""
+    try:
+        letters = _evolution_manager.digital_legacy.get_letters()
+        return {
+            "success": True,
+            "letters": [
+                {
+                    "month": l["month"],
+                    "generated_at": l["generated_at"],
+                    "lessons_learned": l["lessons_learned"],
+                    "achievements": l["achievements"],
+                    "areas_for_improvement": l["areas_for_improvement"],
+                    "reflection": l["reflection"]
+                }
+                for l in letters
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Get digital legacy letters error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/reward")
+async def update_reward_score(request: Request):
+    """Update reward score for a task (increases priority)"""
+    try:
+        body = await request.json()
+        task_id = body.get("task_id", "")
+        reward = body.get("reward", 0.0)
+        
+        _evolution_manager.update_reward_score(task_id, reward)
+        return {"success": True, "message": f"Reward {reward} applied to task {task_id}"}
+    except Exception as e:
+        logger.error(f"Update reward error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/screen/desaturation")
+async def get_screen_desaturation_status():
+    """Get screen desaturation status for focus mode"""
+    try:
+        status = _evolution_manager.screen_desaturation.get_status()
+        return {
+            "success": True,
+            "status": status
+        }
+    except Exception as e:
+        logger.error(f"Get desaturation status error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/screen/desaturate")
+async def apply_screen_desaturation():
+    """Apply screen desaturation for focus mode"""
+    try:
+        _evolution_manager.screen_desaturation.apply_desaturation()
+        return {"success": True, "message": "Screen desaturation applied"}
+    except Exception as e:
+        logger.error(f"Apply desaturation error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/screen/desaturate/remove")
+async def remove_screen_desaturation():
+    """Remove screen desaturation"""
+    try:
+        _evolution_manager.screen_desaturation.remove_desaturation()
+        return {"success": True, "message": "Screen desaturation removed"}
+    except Exception as e:
+        logger.error(f"Remove desaturation error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/code-smelling/smells")
+async def get_code_smells():
+    """Get detected code smells from Code Smelling analysis"""
+    try:
+        smells = _evolution_manager.code_smelling.smells
+        return {
+            "success": True,
+            "smells": smells
+        }
+    except Exception as e:
+        logger.error(f"Get code smells error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/code-smelling/analyze")
+async def analyze_code_smells(request: Request):
+    """Analyze a file for code smells"""
+    try:
+        body = await request.json()
+        file_path = body.get("file_path", "")
+        
+        smells = _evolution_manager.code_smelling.analyze_file(file_path)
+        return {
+            "success": True,
+            "smells": smells
+        }
+    except Exception as e:
+        logger.error(f"Analyze code smells error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/vram/parking")
+async def get_vram_parking_status():
+    """Get VRAM parking status"""
+    try:
+        return {
+            "success": True,
+            "status": "ready",
+            "threshold": _evolution_manager.vram_parking._parking_threshold,
+            "advance_time": _evolution_manager.vram_parking._advance_time
+        }
+    except Exception as e:
+        logger.error(f"Get VRAM parking status error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/vram/park")
+async def park_vram(request: Request):
+    """Park VRAM before heavy app launch"""
+    try:
+        body = await request.json()
+        predicted_app = body.get("predicted_app", "")
+        
+        success = _evolution_manager.vram_parking.park_vram(predicted_app)
+        return {
+            "success": success,
+            "message": "VRAM parked" if success else "VRAM parking failed"
+        }
+    except Exception as e:
+        logger.error(f"Park VRAM error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/mood/lighting")
+async def get_mood_lighting_status():
+    """Get mood lighting status"""
+    try:
+        return {
+            "success": True,
+            "current_mood": _evolution_manager.mood_lighting._current_mood,
+            "light_colors": _evolution_manager.mood_lighting._light_colors
+        }
+    except Exception as e:
+        logger.error(f"Get mood lighting status error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/mood/lighting/set")
+async def set_mood_lighting(request: Request):
+    """Set mood lighting color"""
+    try:
+        body = await request.json()
+        mood = body.get("mood", "neutral")
+        
+        color = _evolution_manager.mood_lighting.set_light_mood(mood)
+        return {
+            "success": True,
+            "mood": mood,
+            "color_rgb": list(color)
+        }
+    except Exception as e:
+        logger.error(f"Set mood lighting error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/adaptive/whisper")
+async def get_adaptive_whisper_status():
+    """Get adaptive whisper status"""
+    try:
+        noise_level = _evolution_manager.adaptive_whisper.detect_ambient_noise()
+        settings = _evolution_manager.adaptive_whisper.adjust_voice(noise_level)
+        return {
+            "success": True,
+            "noise_level": noise_level,
+            "settings": settings
+        }
+    except Exception as e:
+        logger.error(f"Get adaptive whisper status error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/deja-vu/history")
+async def get_deja_vu_history():
+    """Get repeat error detection history"""
+    try:
+        history = _evolution_manager.deja_vu.error_history
+        return {
+            "success": True,
+            "history": [
+                {
+                    "signature": e["signature"],
+                    "message": e["message"],
+                    "code_context": e["code_context"],
+                    "timestamp": e["timestamp"],
+                    "fix_applied": e["fix_applied"]
+                }
+                for e in history
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Get déjà vu history error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/market/gaps")
+async def get_market_gaps():
+    """Get market gap analysis from B2B Market Scout"""
+    try:
+        gaps = _evolution_manager.market_scout.gaps_found
+        return {
+            "success": True,
+            "gaps": gaps
+        }
+    except Exception as e:
+        logger.error(f"Get market gaps error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/social/draft")
+async def draft_social_reply(request: Request):
+    """Draft a social media reply"""
+    try:
+        body = await request.json()
+        platform = body.get("platform", "telegram")
+        message = body.get("message", "")
+        tone = body.get("tone", "friendly")
+        
+        draft = _evolution_manager.social_ghost.draft_reply(platform, message, tone)
+        return {
+            "success": True,
+            "draft": draft
+        }
+    except Exception as e:
+        logger.error(f"Draft social reply error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/social/draft/approve")
+async def approve_social_draft(request: Request):
+    """Approve a drafted social media reply"""
+    try:
+        body = await request.json()
+        draft_id = body.get("draft_id", "")
+        
+        success = _evolution_manager.social_ghost.approve_draft(draft_id)
+        return {
+            "success": success,
+            "message": "Draft approved" if success else "Draft not found"
+        }
+    except Exception as e:
+        logger.error(f"Approve draft error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/evolution/memory/dream")
+async def trigger_memory_dreaming():
+    """Manually trigger memory compression and dreaming"""
+    try:
+        _evolution_manager.memory_dreaming._compress_and_dream()
+        return {
+            "success": True,
+            "message": "Memory dreaming completed"
+        }
+    except Exception as e:
+        logger.error(f"Trigger memory dreaming error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/evolution/legacy")
+async def get_evolution_legacy():
+    """Get complete evolution layer legacy data"""
+    try:
+        return {
+            "success": True,
+            "stats": _evolution_manager.get_status(),
+            "core_memories_count": len(_evolution_manager.memory_dreaming.get_core_memories()),
+            "red_team_reports_count": len(_evolution_manager.red_team.get_reports()),
+            "social_decay_contacts_count": len(_evolution_manager.old_friend.get_decay_contacts()),
+            "tools_created_count": len(_evolution_manager.tool_maker.list_tools()),
+            "digital_legacy_letters_count": len(_evolution_manager.digital_legacy.get_letters())
+        }
+    except Exception as e:
+        logger.error(f"Get evolution legacy error: {e}")
+        return {"success": False, "error": str(e)}
+
+# ═══════════════════════════════════════════════════════════════
 # CODE ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 class CodeExecuteRequest(BaseModel):
@@ -638,6 +1254,364 @@ async def get_fact():
 async def get_compliment():
     from core.humor import humor
     return {"success": True, "compliment": humor.get_compliment()}
+
+# ═══════════════════════════════════════════════════════════════
+# PROACTIVE INTELLIGENCE ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+@app.get("/proactive/status")
+async def get_proactive_status():
+    """Get proactive intelligence system status"""
+    try:
+        from core.proactive import proactive_assistant
+        return proactive_assistant.get_status()
+    except Exception as e:
+        logger.error(f"Proactive status error: {e}")
+        return {"error": str(e)}
+
+@app.post("/proactive/process")
+async def process_input(request: Request):
+    """Process input through proactive intelligence pipeline"""
+    try:
+        body = await request.json()
+        user_input = body.get("input", "")
+        conversation_context = body.get("context", [])
+        
+        from core.proactive import proactive_assistant
+        result = proactive_assistant.process_input(user_input, conversation_context)
+        
+        return {
+            "success": True,
+            "pattern_match": result.get("pattern_match"),
+            "predictions": result.get("predictions"),
+            "actions": result.get("actions")
+        }
+    except Exception as e:
+        logger.error(f"Proactive processing error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/proactive/patterns")
+async def get_patterns():
+    """Get all learned behavioral patterns"""
+    try:
+        from core.proactive import PatternMatcher
+        matcher = PatternMatcher()
+        return {"patterns": matcher.get_all_patterns()}
+    except Exception as e:
+        logger.error(f"Get patterns error: {e}")
+        return {"error": str(e)}
+
+@app.post("/proactive/patterns/learn")
+async def learn_pattern(request: Request):
+    """Learn a new behavioral pattern"""
+    try:
+        body = await request.json()
+        trigger = body.get("trigger")
+        routine = body.get("routine", [])
+        frequency = body.get("frequency", 1)
+        confidence = body.get("confidence", 0.7)
+        
+        from core.proactive import PatternMatcher
+        matcher = PatternMatcher()
+        matcher.learn_pattern(trigger, routine, frequency, confidence)
+        
+        return {"success": True, "message": f"Learned pattern: {trigger} → {routine}"}
+    except Exception as e:
+        logger.error(f"Learn pattern error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/proactive/predict")
+async def predict_next_intent(request: Request):
+    """Get intent predictions for given context"""
+    try:
+        body = await request.json()
+        current_intent = body.get("intent", "")
+        conversation_context = body.get("context", [])
+        
+        from core.proactive import IntentPredictor
+        predictor = IntentPredictor()
+        predictions = predictor.predict_next_intent(current_intent, conversation_context)
+        
+        return {"predictions": predictions}
+    except Exception as e:
+        logger.error(f"Intent prediction error: {e}")
+        return {"error": str(e)}
+
+@app.post("/proactive/task/decompose")
+async def decompose_task(request: Request):
+    """Decompose a complex task into sub-tasks"""
+    try:
+        body = await request.json()
+        task = body.get("task", "")
+        
+        from core.proactive import TaskOrchestrator
+        orchestrator = TaskOrchestrator()
+        
+        if orchestrator.is_complex_task(task):
+            sub_tasks = orchestrator.decompose_task(task)
+            for sub_task in sub_tasks:
+                orchestrator.add_to_queue(sub_task)
+            
+            return {
+                "is_complex": True,
+                "sub_tasks": sub_tasks,
+                "count": len(sub_tasks)
+            }
+        else:
+            return {"is_complex": False, "message": "Task not complex enough to decompose"}
+    except Exception as e:
+        logger.error(f"Task decomposition error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/proactive/queue")
+async def get_task_queue():
+    """Get task execution queue status"""
+    try:
+        from core.proactive import TaskOrchestrator
+        orchestrator = TaskOrchestrator()
+        return orchestrator.get_queue_status()
+    except Exception as e:
+        logger.error(f"Task queue error: {e}")
+        return {"error": str(e)}
+
+@app.post("/proactive/queue/complete")
+async def mark_task_complete(request: Request):
+    """Mark a task as complete"""
+    try:
+        body = await request.json()
+        task_id = body.get("task_id")
+        
+        from core.proactive import TaskOrchestrator
+        orchestrator = TaskOrchestrator()
+        orchestrator.mark_complete(task_id)
+        
+        return {"success": True, "message": "Task marked complete"}
+    except Exception as e:
+        logger.error(f"Mark complete error: {e}")
+        return {"success": False, "error": str(e)}
+
+# ═══════════════════════════════════════════════════════════════
+# BIOMETRIC SECURITY ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+@app.post("/security/train-biometric")
+async def train_biometric_model_endpoint(request: Request):
+    """Train biometric model from typing data"""
+    try:
+        body = await request.json()
+        typing_data = body.get("typing_data", [])
+        
+        result = await train_biometric_model(typing_data)
+        return result
+    except Exception as e:
+        logger.error(f"Biometric training error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/security/verify-biometric")
+async def verify_biometric_endpoint(request: Request):
+    """Verify user identity through typing rhythm analysis"""
+    try:
+        body = await request.json()
+        typing_data = body.get("typing_data", [])
+        
+        result = await verify_typing_rhythm(typing_data)
+        return result
+    except Exception as e:
+        logger.error(f"Biometric verification error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/security/trigger-lockdown")
+async def trigger_lockdown_endpoint(request: Request):
+    """Trigger system lockdown for security"""
+    try:
+        result = await trigger_lockdown()
+        return result
+    except Exception as e:
+        logger.error(f"Lockdown trigger error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/security/status")
+async def get_security_status_endpoint():
+    """Get current security system status"""
+    try:
+        result = await get_security_status()
+        return result
+    except Exception as e:
+        logger.error(f"Security status error: {e}")
+        return {"error": str(e)}
+
+
+@app.post("/security/typing-event")
+async def receive_typing_event(request: Request):
+    """Receive typing events from frontend for biometric verification"""
+    try:
+        body = await request.json()
+        event = body.get("event", {})
+        
+        # Add event to autonomy heartbeat system
+        from core.autonomy import heartbeat
+        await heartbeat.add_typing_event(event)
+        
+        return {
+            "success": True,
+            "message": "Typing event received"
+        }
+    except Exception as e:
+        logger.error(f"Typing event error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/security/typing-data")
+async def receive_typing_data(request: Request):
+    """Receive typing data for biometric verification (used during calibration)"""
+    try:
+        body = await request.json()
+        typing_data = body.get("typing_data", body.get("keyData", []))
+        
+        # Verify typing rhythm against biometric model
+        from api.security import verify_typing_rhythm
+        result = await verify_typing_rhythm(typing_data)
+        
+        logger.info(f"Biometric verification result: {result.get('action', 'none')} - Score: {result.get('score', 0)}%")
+        
+        return result
+    except Exception as e:
+        logger.error(f"Typing data verification error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/security/heartbeat/status")
+async def get_heartbeat_status():
+    """Get autonomous heartbeat status"""
+    try:
+        from core.autonomy import heartbeat
+        return heartbeat.get_status()
+    except Exception as e:
+        logger.error(f"Heartbeat status error: {e}")
+        return {"error": str(e)}
+
+# ═══════════════════════════════════════════════════════════════
+# REASONING TREE ENDPOINTS (131)
+# ═══════════════════════════════════════════════════════════════
+@app.get("/reasoning/thoughts")
+async def get_thoughts(limit: int = 50):
+    """Get recent thoughts from reasoning engine"""
+    try:
+        thoughts = reasoning_engine.get_thoughts(limit)
+        return {
+            "success": True,
+            "thoughts": thoughts
+        }
+    except Exception as e:
+        logger.error(f"Get thoughts error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/reasoning/stats")
+async def get_reasoning_stats():
+    """Get reasoning engine statistics"""
+    try:
+        stats = reasoning_engine.get_thought_stats()
+        return {
+            "success": True,
+            "stats": stats
+        }
+    except Exception as e:
+        logger.error(f"Get reasoning stats error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/reasoning/generate")
+async def generate_rationalization(request: Request):
+    """Generate a rationalization for an action"""
+    try:
+        body = await request.json()
+        action = body.get("action", "")
+        context = body.get("context", {})
+        routine_id = body.get("routine_id")
+        
+        thought = await reasoning_engine.generate_rationalization(
+            action=action,
+            context=context,
+            routine_id=routine_id
+        )
+        
+        return {
+            "success": True,
+            "thought": thought
+        }
+    except Exception as e:
+        logger.error(f"Generate rationalization error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.websocket("/ws/reasoning")
+async def websocket_reasoning(websocket: WebSocket):
+    """WebSocket for streaming thoughts in real-time"""
+    await websocket.accept()
+    logger.info("🧠 Reasoning WebSocket connected")
+    
+    try:
+        while True:
+            # Wait for a short time then send any new thoughts
+            await asyncio.sleep(0.5)
+            
+            # Get recent thoughts
+            thoughts = reasoning_engine.get_thoughts(limit=1)
+            if thoughts:
+                await websocket.send_json({
+                    "type": "thought",
+                    "data": thoughts[0]
+                })
+            
+    except WebSocketDisconnect:
+        logger.info("🧠 Reasoning WebSocket disconnected")
+    except Exception as e:
+        logger.error(f"Reasoning WebSocket error: {e}")
+
+# ═══════════════════════════════════════════════════════════════
+# WEBSOCKET ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+@app.websocket("/ws/heartbeat")
+async def websocket_heartbeat(websocket: WebSocket):
+    """WebSocket for real-time heartbeat and health updates"""
+    await websocket.accept()
+    logger.info("🔌 Heartbeat WebSocket connected")
+    
+    try:
+        while True:
+            # Send health status every 5 seconds
+            await websocket.send_json({
+                "type": "health_update",
+                "data": heartbeat.get_health_status()
+            })
+            
+            # Send proactive tasks
+            tasks = heartbeat.get_proactive_tasks()
+            if tasks:
+                await websocket.send_json({
+                    "type": "proactive_tasks",
+                    "data": tasks
+                })
+            
+            await asyncio.sleep(5)
+            
+    except WebSocketDisconnect:
+        logger.info("🔌 Heartbeat WebSocket disconnected")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+
+@app.websocket("/ws/stream")
+async def websocket_stream(websocket: WebSocket):
+    """WebSocket for streaming responses"""
+    await websocket.accept()
+    logger.info("🔌 Stream WebSocket connected")
+    
+    try:
+        while True:
+            # Wait for message
+            data = await websocket.receive_text()
+            await websocket.send_text(f"Message received: {data}")
+            
+    except WebSocketDisconnect:
+        logger.info("🔌 Stream WebSocket disconnected")
+    except Exception as e:
+        logger.error(f"Stream WebSocket error: {e}")
 
 # ═══════════════════════════════════════════════════════════════
 # Run

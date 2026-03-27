@@ -1,0 +1,340 @@
+/* Biometric Enrollment Component Styles */
+.biometric-enrollment {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #fff;
+}
+
+.biometric-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.biometric-header h1 {
+  font-size: 2.5rem;
+  margin: 0 0 10px 0;
+  background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  color: #a0a0a0;
+  font-size: 1.1rem;
+}
+
+/* Round Indicator */
+.round-indicator {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.round-number {
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #00d4ff;
+}
+
+.round-status {
+  color: #a0a0a0;
+  font-size: 0.9rem;
+}
+
+/* Calibration Bar */
+.calibration-bar-container {
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 15px;
+  position: relative;
+}
+
+.calibration-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+  border-radius: 10px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+}
+
+.progress-text {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  color: #fff;
+  font-weight: bold;
+}
+
+/* Training Status */
+.training-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.status-text {
+  font-size: 0.95rem;
+  color: #a0a0a0;
+}
+
+/* Feedback Messages */
+.feedback {
+  padding: 15px 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.feedback.success {
+  background: rgba(76, 175, 80, 0.2);
+  border: 1px solid #4CAF50;
+  color: #81c784;
+}
+
+.feedback.error {
+  background: rgba(244, 67, 54, 0.2);
+  border: 1px solid #f44336;
+  color: #e57373;
+}
+
+/* Typing Area */
+.typing-area {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 15px;
+  padding: 30px;
+  margin-bottom: 25px;
+  min-height: 180px;
+}
+
+.golden-text {
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.char {
+  color: #666;
+  transition: all 0.1s ease;
+  display: inline-block;
+  min-width: 1.2ch;
+  text-align: center;
+}
+
+.char.typed {
+  color: #fff;
+}
+
+.char.current {
+  color: #00d4ff;
+  transform: scale(1.2);
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
+}
+
+/* Key Stats */
+.key-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #888;
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #00d4ff;
+}
+
+/* Instructions */
+.instructions {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 25px;
+}
+
+.instructions h3 {
+  margin: 0 0 15px 0;
+  color: #00d4ff;
+  font-size: 1.1rem;
+}
+
+.instructions ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.instructions li {
+  margin-bottom: 10px;
+  color: #a0a0a0;
+  line-height: 1.6;
+}
+
+/* Start Button */
+.start-button {
+  width: 100%;
+  padding: 18px 30px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #fff;
+  background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+}
+
+.start-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 212, 255, 0.5);
+}
+
+.start-button:active {
+  transform: translateY(0);
+}
+
+/* Calibration Complete */
+.calibration-complete {
+  text-align: center;
+  padding: 60px 40px;
+  background: rgba(76, 175, 80, 0.1);
+  border-radius: 20px;
+  border: 2px solid #4CAF50;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  background: #4CAF50;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 25px 0;
+  font-size: 3rem;
+  color: #fff;
+  animation: scaleIn 0.5s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.calibration-complete h2 {
+  color: #fff;
+  margin: 0 0 10px 0;
+  font-size: 2rem;
+}
+
+.calibration-complete p {
+  color: #a0a0a0;
+  margin: 0 0 30px 0;
+  font-size: 1.1rem;
+}
+
+.calibrate-again {
+  padding: 15px 40px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  background: transparent;
+  border: 2px solid #00d4ff;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.calibrate-again:hover {
+  background: rgba(0, 212, 255, 0.2);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .biometric-enrollment {
+    padding: 20px;
+  }
+
+  .biometric-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .golden-text {
+    font-size: 0.95rem;
+  }
+
+  .key-stats {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .instructions {
+    padding: 15px;
+  }
+
+  .instructions ul {
+    padding-left: 15px;
+  }
+}

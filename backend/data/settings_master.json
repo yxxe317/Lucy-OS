@@ -1,0 +1,107 @@
+{
+  "version": "2.0.0",
+  "lucy_os": {
+    "name": "Lucy OS",
+    "version": "2.0.0",
+    "build": "Omega",
+    "autonomy_level": 10,
+    "sovereign_status": true
+  },
+  "layers": {
+    "base": {
+      "enabled": true,
+      "routines": 15,
+      "priority": 1
+    },
+    "advanced": {
+      "enabled": true,
+      "routines": 20,
+      "priority": 2
+    },
+    "ultra": {
+      "enabled": true,
+      "routines": 20,
+      "priority": 3
+    },
+    "omega": {
+      "enabled": true,
+      "routines": 20,
+      "priority": 4
+    }
+  },
+  "hardware": {
+    "gpu": {
+      "model": "NVIDIA RTX 4070",
+      "vram_limit_gb": 6,
+      "temp_threshold": 85,
+      "fan_control": true
+    },
+    "cpu": {
+      "cores": 16,
+      "threads": 32,
+      "thermal_threshold": 90
+    },
+    "memory": {
+      "total_gb": 32,
+      "reserved_for_llm_gb": 4,
+      "auction_enabled": true
+    }
+  },
+  "voice": {
+    "engine": "E2-TTS",
+    "emotion_range": ["calm", "excited", "serious", "warm", "neutral", "concerned", "curious", "confident"],
+    "breath_enabled": true,
+    "pause_enabled": true,
+    "pitch_range": [0.8, 1.2],
+    "speed_range": [0.8, 1.3]
+  },
+  "vision": {
+    "enabled": true,
+    "haarcascade_path": "backend/data/haarcascade",
+    "object_detection": true,
+    "emotion_recognition": true
+  },
+  "autonomy": {
+    "self_evolution": true,
+    "max_vram_gb": 6,
+    "max_temp_c": 85,
+    "fan_speed_auto": true,
+    "learning_rate": 0.001,
+    "exploration_rate": 0.1
+  },
+  "security": {
+    "sandbox_mode": true,
+    "network_isolation": true,
+    "process_monitoring": true,
+    "encryption": "AES-256"
+  },
+  "notifications": {
+    "streak_reminders": true,
+    "vip_priority": true,
+    "welcome_summary": true,
+    "spam_filtering": true
+  },
+  "integrations": {
+    "github": true,
+    "linkedin": true,
+    "smart_home": true,
+    "weather_api": true,
+    "news_feed": true
+  },
+  "flashcards": {
+    "enabled": true,
+    "language": "korean",
+    "storage_path": "backend/data/flashcards"
+  },
+  "audio": {
+    "keyboard_asmr": true,
+    "context_switching": true,
+    "deep_focus_mode": true
+  },
+  "dashboard": {
+    "cognitive": true,
+    "hardware_monitor": true,
+    "task_history": true,
+    "visualizer": true
+  }
+}

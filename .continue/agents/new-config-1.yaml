@@ -1,0 +1,8 @@
+models:
+  - name: Qwen 3.5 Local
+    provider: openai
+    model: qwen-9b
+    api_base: http://localhost:8012/v1
+    api_key: ignored
+    completion_options:
+      stop: ["</think>", "<|im_end|>", "<|endoftext|>"]

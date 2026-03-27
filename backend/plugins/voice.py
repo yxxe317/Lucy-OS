@@ -4,6 +4,12 @@ import asyncio
 from pathlib import Path
 import logging
 import re
+import sys
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from core.voice_commands import voice_processor, COMMAND_PATTERNS
 
 logger = logging.getLogger("VoicePlugin")
 
@@ -240,6 +246,25 @@ def preprocess_text_for_speech(text: str) -> str:
     
     return result
 
+def detect_intent(text: str) -> tuple:
+    """
+    Detect intent from voice input using voice_processor
+    Returns: (intent_name, confidence_score)
+    """
+    return voice_processor.detect_intent(text)
+
+def generate_response(intent: str, text: str) -> str:
+    """
+    Generate appropriate response based on detected intent
+    """
+    return voice_processor.generate_response(intent, text)
+
+def process_voice_command(text: str) -> dict:
+    """
+    Process a voice command and return structured result
+    """
+    return voice_processor.process_command(text)
+
 # Try F5-TTS first, then edge-tts, then pyttsx3
 USE_F5_TTS = False
 USE_EDGE_TTS = False
@@ -337,6 +362,38 @@ class VoicePlugin:
                 
         except Exception as e:
             logger.error(f"❌ Voice error: {e}")
+            return {"status": "error", "message": str(e)}
+    
+    async def listen(self) -> dict:
+        """
+        Listen for voice commands and process them
+        Returns: {intent, response, confidence}
+        """
+        try:
+            logger.info("🎤 Listening for voice commands...")
+            
+            # Simulated voice input detection
+            # In production, this would use actual audio input
+            sample_commands = [
+                "hello lucy",
+                "what time is it",
+                "tell me a joke",
+                "how are you",
+            ]
+            
+            for cmd in sample_commands:
+                result = process_voice_command(cmd)
+                logger.info(f"🎤 Detected: {result['intent']} (conf: {result['confidence']:.2f})")
+                logger.info(f"📝 Response: {result['response'][:50]}...")
+            
+            return {
+                "status": "success",
+                "commands_processed": len(sample_commands),
+                "processor": "voice_commands"
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Voice listening error: {e}")
             return {"status": "error", "message": str(e)}
 
 voice = VoicePlugin()
